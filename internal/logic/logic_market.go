@@ -11,6 +11,5 @@ func (m *CexLogic) GetSymbolTickerPrice(symbol string) ([]*okex.TickerDetail, er
 	if err != nil {
 		return nil, log.Errorf("get ticker error: %s", err)
 	}
-	log.Json("ticker", ticker)
 	return ticker.Data, nil
 }

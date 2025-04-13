@@ -7,7 +7,11 @@ import (
 )
 
 func (m *CexLogic) GetSymbolTickerPrice(symbol string) ([]*okex.TickerDetail, error) {
-	ticker, err := m.client.NewGetTickerService().InstrumentId(symbol).Do(context.Background())
+	svc := m.client.NewGetTickerService()
+	if symbol == "" {
+		return nil, log.Errorf("symbol is empty")
+	}
+	ticker, err := svc.InstrumentId(symbol).Do(context.Background())
 	if err != nil {
 		return nil, log.Errorf("get ticker error: %s", err)
 	}

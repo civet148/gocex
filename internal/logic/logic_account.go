@@ -7,12 +7,12 @@ import (
 )
 
 func (m *CexLogic) GetBalance(ccys ...string) (balance []*okex.Balance, err error) {
-	bs := m.client.NewGetBalanceService()
+	svc := m.client.NewGetBalanceService()
 	var res *okex.GetBalanceServiceResponse
 	if len(ccys) > 0 {
-		bs.Currencies(ccys[0])
+		svc.Currencies(ccys[0])
 	}
-	res, err = bs.Do(context.Background())
+	res, err = svc.Do(context.Background())
 	if err != nil {
 		return nil, log.Errorf(err)
 	}

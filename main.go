@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/civet148/gocex/internal/config"
+	"github.com/civet148/gocex/internal/logic"
+	"github.com/civet148/godotenv"
 	"github.com/civet148/log"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -16,10 +19,6 @@ const (
 var (
 	BuildTime = "2025-04-11"
 	GitCommit = "<N/A>"
-)
-
-const (
-	CmdFlag_Url = "url"
 )
 
 func init() {
@@ -54,16 +53,16 @@ func main() {
 		Name:    ProgramName,
 		Usage:   "",
 		Version: fmt.Sprintf("v%s %s commit %s", Version, BuildTime, GitCommit),
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:     CmdFlag_Url,
-				Usage:    "data source name of database",
-				Required: true,
-			},
-		},
+		Flags:   []cli.Flag{},
 		Action: func(ctx *cli.Context) error {
-
-			return nil
+			var c config.Config
+			err := godotenv.Load(&c)
+			if err != nil {
+				log.Errorf("load .env error %s", err)
+				return err
+			}
+			cex := logic.NewCexLogic(&c)
+			return cex.Run()
 		},
 	}
 	if err := app.Run(os.Args); err != nil {

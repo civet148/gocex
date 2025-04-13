@@ -21,10 +21,15 @@ func NewCexLogic(c *config.Config) *CexLogic {
 
 func (m *CexLogic) Run() error {
 	log.Infof("running...")
-	bs, err := m.GetBalance("USDT")
+	bs, err := m.GetBalance()
 	if err != nil {
 		return log.Errorf(err)
 	}
 	log.Json("balances", bs)
+	ts, err := m.GetSymbolTickerPrice("BTC-USDT")
+	if err != nil {
+		return log.Errorf(err)
+	}
+	log.Json("tickers", ts)
 	return nil
 }

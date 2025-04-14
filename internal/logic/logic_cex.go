@@ -28,15 +28,15 @@ func (m *CexLogic) Run() error {
 		return log.Errorf(err)
 	}
 	log.Json("balances", bs)
-	//ts, err := m.cex.GetTickerPrice(types.BTCUSDT)
-	//if err != nil {
-	//	return log.Errorf(err)
-	//}
-	//log.Json("tickers", ts)
-	//odrs, err := m.cex.GetOrder()
-	//if err != nil {
-	//	return log.Errorf(err)
-	//}
-	//log.Json("orders", odrs)
+	ts, err := m.cex.GetTickerPrice(types.BTCUSDT)
+	if err != nil {
+		return log.Errorf(err)
+	}
+	log.Json("tickers", ts)
+	odrs, err := m.cex.GetOrder()
+	if err != nil {
+		return log.Errorf(err)
+	}
+	log.Json("orders", odrs)
 	return nil
 }

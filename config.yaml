@@ -1,0 +1,12 @@
+
+ApiKey:
+ApiSecret:
+ApiPassphrase:
+CexName: "okex"
+Contract:
+  Symbol: "PEPE-USDT" # 交易对
+  PullBackRate: 0.03  # 价格回调比例
+  OrderInterval: "15m" # 订单下单时间间隔
+  TradeAmountRate: 0.3 # 交易金额比例（余额百分比）
+  TickerInterval: "10s" # 市场价监控时间间隔
+

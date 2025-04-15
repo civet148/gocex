@@ -22,7 +22,7 @@ type BalanceDetail struct {
 	NotionalLever string        `json:"notionalLever"`
 	OrdFrozen     sqlca.Decimal `json:"ordFrozen"`
 	Twap          string        `json:"twap"`
-	UTime         string        `json:"uTime"`
+	UTime         int64         `json:"uTime"`
 	Upl           string        `json:"upl"`
 	PplLiab       string        `json:"uplLiab"`
 	StgyEq        sqlca.Decimal `json:"stgyEq"`
@@ -38,5 +38,5 @@ type Balance struct {
 	NotionalUsd string           `json:"notionalUsd"`
 	OrdFroz     sqlca.Decimal    `json:"ordFroz"`
 	TotalEq     sqlca.Decimal    `json:"totalEq"`
-	UTime       string           `json:"uTime"`
+	UTime       int64            `json:"uTime"`
 }

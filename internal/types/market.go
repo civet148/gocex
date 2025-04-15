@@ -18,5 +18,5 @@ type TickerDetail struct {
 	Vol24h    sqlca.Decimal `json:"vol24h"`
 	SodUtc0   string        `json:"sodUtc0"`
 	SodUtc8   string        `json:"sodUtc8"`
-	Ts        string        `json:"ts"`
+	Ts        int64         `json:"ts"`
 }

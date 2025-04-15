@@ -22,6 +22,10 @@ var (
 	GitCommit = "<N/A>"
 )
 
+const (
+	CmdFlag_Config = "config"
+)
+
 func init() {
 	log.SetLevel("info")
 }
@@ -54,13 +58,19 @@ func main() {
 		Name:    ProgramName,
 		Usage:   "",
 		Version: fmt.Sprintf("v%s %s commit %s", Version, BuildTime, GitCommit),
-		Flags:   []cli.Flag{},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    CmdFlag_Config,
+				Usage:   "config file",
+				Aliases: []string{"c"},
+				Value:   "config.yaml",
+			},
+		},
 		Action: func(ctx *cli.Context) error {
 			var c config.Config
 			//设置配置文件
-			viper.SetConfigFile("config.yaml")
-			// 自动读取环境变量
-			viper.AutomaticEnv()
+			viper.SetConfigFile(ctx.String(CmdFlag_Config))
+
 			// 读取配置文件
 			err := viper.ReadInConfig()
 			if err != nil {

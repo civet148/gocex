@@ -35,5 +35,5 @@ type OrderListDetail struct {
 	TpOrdPx     sqlca.Decimal `json:"tpOrdPx"`
 	TpTriggerPx sqlca.Decimal `json:"tpTriggerPx"`
 	TradeId     string        `json:"tradeId"`
-	UTime       string        `json:"uTime"`
+	UTime       int64         `json:"uTime"`
 }

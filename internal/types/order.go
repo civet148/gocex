@@ -16,7 +16,7 @@ type OrderListDetail struct {
 	FillTime    string        `json:"fillTime"`
 	InstId      string        `json:"instId"`
 	InstType    string        `json:"instType"`
-	Lever       string        `json:"lever"`
+	Lever       sqlca.Decimal `json:"lever"`
 	OrdId       string        `json:"ordId"`
 	OrdType     string        `json:"ordType"`
 	Pnl         string        `json:"pnl"`

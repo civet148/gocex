@@ -6,6 +6,7 @@ import (
 	"github.com/civet148/gocex/internal/logic"
 	"github.com/civet148/godotenv"
 	"github.com/civet148/log"
+	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
@@ -56,11 +57,30 @@ func main() {
 		Flags:   []cli.Flag{},
 		Action: func(ctx *cli.Context) error {
 			var c config.Config
-			err := godotenv.Load(&c)
+			//设置配置文件
+			viper.SetConfigFile("config.yaml")
+			// 自动读取环境变量
+			viper.AutomaticEnv()
+			// 读取配置文件
+			err := viper.ReadInConfig()
 			if err != nil {
-				log.Errorf("load .env error %s", err)
-				return err
+				return log.Errorf(err)
 			}
+
+			// 反序列化到结构体
+			err = viper.Unmarshal(&c)
+			if err != nil {
+				return log.Errorf(err)
+			}
+			if c.ApiKey == "" {
+				err = godotenv.Load(&c)
+				if err != nil {
+					log.Errorf("load .env error %s", err)
+					return err
+				}
+			}
+
+			log.Json(&c)
 			cex := logic.NewCexLogic(&c)
 			return cex.Run()
 		},

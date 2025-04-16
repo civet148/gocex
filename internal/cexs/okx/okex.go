@@ -12,7 +12,7 @@ type CexOkex struct {
 }
 
 func init() {
-	api.RegisterCex(types.CexTypeOkex, NewCex)
+	api.RegisterCex(types.CexNameOkex, NewCex)
 }
 
 func NewCex(c *config.Config) api.CexApi {
@@ -22,5 +22,5 @@ func NewCex(c *config.Config) api.CexApi {
 }
 
 func (c *CexOkex) Name() string {
-	return string(types.CexTypeOkex)
+	return string(types.CexNameOkex)
 }

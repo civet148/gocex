@@ -17,13 +17,13 @@ type CexApi interface {
 
 type CexNew func(config *config.Config) CexApi
 
-var cexInsts = make(map[types.CexType]CexNew)
+var cexInsts = make(map[types.CexName]CexNew)
 
-func RegisterCex(ct types.CexType, inst CexNew) {
+func RegisterCex(ct types.CexName, inst CexNew) {
 	cexInsts[ct] = inst
 }
 
-func NewCex(ct types.CexType, c *config.Config) CexApi {
+func NewCex(ct types.CexName, c *config.Config) CexApi {
 	inst, ok := cexInsts[ct]
 	if !ok {
 		log.Panic("cex type %v not registered", ct)

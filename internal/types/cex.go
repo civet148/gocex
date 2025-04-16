@@ -1,12 +1,11 @@
 package types
 
-type CexType string
+type CexName string
 
 const (
-	CexTypeOkex    CexType = "okex"
-	CexTypeBinance CexType = "binance"
+	CexNameOkex CexName = "okex"
 )
 
-func (c CexType) String() string {
+func (c CexName) String() string {
 	return string(c)
 }

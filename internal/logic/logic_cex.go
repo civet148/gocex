@@ -5,7 +5,6 @@ import (
 	_ "github.com/civet148/gocex/internal/cexs/okx"
 	"github.com/civet148/gocex/internal/config"
 	"github.com/civet148/gocex/internal/types"
-	"github.com/civet148/log"
 )
 
 type CexLogic struct {
@@ -13,30 +12,14 @@ type CexLogic struct {
 	cex api.CexApi
 }
 
-func NewCexLogic(c *config.Config) *CexLogic {
-
+func NewCexLogic(cfg *config.Config) *CexLogic {
 	return &CexLogic{
-		cfg: c,
-		cex: api.NewCex(types.CexTypeOkex, c),
+		cfg: cfg,
+		cex: api.NewCex(types.CexName(cfg.CexName), cfg),
 	}
 }
 
 func (m *CexLogic) Run() error {
-	log.Infof("running...")
-	bs, err := m.cex.GetBalance(types.USDT)
-	if err != nil {
-		return log.Errorf(err)
-	}
-	log.Json("balances", bs)
-	ts, err := m.cex.GetTickerPrice(types.BTCUSDT)
-	if err != nil {
-		return log.Errorf(err)
-	}
-	log.Json("tickers", ts)
-	odrs, err := m.cex.GetOrder()
-	if err != nil {
-		return log.Errorf(err)
-	}
-	log.Json("orders", odrs)
-	return nil
+	contract := NewContractLogic(m.cfg, m.cex)
+	return contract.Exec()
 }

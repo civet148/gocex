@@ -1,0 +1,92 @@
+package logic
+
+import (
+	"context"
+	"github.com/civet148/gocex/internal/api"
+	"github.com/civet148/gocex/internal/locker"
+	"github.com/civet148/log"
+	"github.com/civet148/sqlca/v2"
+	"time"
+)
+
+type TickerLogic struct {
+	cex          api.CexApi
+	currentPrice sqlca.Decimal
+	lowestPrice  sqlca.Decimal
+	highestPrice sqlca.Decimal
+	pullBackRate sqlca.Decimal
+	canceler     context.CancelFunc
+}
+
+func NewTickerLogic(cex api.CexApi) *TickerLogic {
+	return &TickerLogic{
+		cex: cex,
+	}
+}
+
+func (l *TickerLogic) Start(symbol string, interval time.Duration) {
+	ctx, canceler := context.WithCancel(context.Background())
+	l.canceler = canceler
+	go l.startTicker(ctx, symbol, interval)
+}
+
+func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval time.Duration) {
+	tc := time.NewTicker(interval)
+	_ = l.updateMarketPrice(symbol)
+	for {
+		select {
+		case <-tc.C:
+			_ = l.updateMarketPrice(symbol)
+		case <-ctx.Done():
+			return
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func (l *TickerLogic) updateMarketPrice(symbol string) error {
+	ts, err := l.cex.GetTickerPrice(symbol)
+	if err != nil {
+		return log.Errorf(err)
+	}
+	if len(ts) == 0 {
+		return log.Errorf("symbol %s market not exist", symbol)
+	}
+	price := ts[0]
+
+	unlock := locker.Lock()
+	defer unlock()
+
+	marketPrice := price.AskPx
+	l.currentPrice = marketPrice
+
+	if l.lowestPrice.IsZero() {
+		l.lowestPrice = marketPrice
+	} else if l.lowestPrice.GreaterThan(l.currentPrice) {
+		l.lowestPrice = marketPrice
+	}
+	if l.highestPrice.IsZero() {
+		l.highestPrice = marketPrice
+	} else if l.highestPrice.LessThan(marketPrice) {
+		l.highestPrice = marketPrice
+	}
+
+	log.Infof("symbol [%s] market [%v] low [%v] high [%v]", symbol, l.currentPrice, l.lowestPrice, l.highestPrice)
+	return nil
+}
+
+func (l *TickerLogic) Stop() {
+	l.canceler()
+}
+
+func (l *TickerLogic) GetCurrentPrice() sqlca.Decimal {
+	return l.currentPrice
+}
+
+func (l *TickerLogic) GetLowestPrice() sqlca.Decimal {
+	return l.lowestPrice
+}
+
+func (l *TickerLogic) GetHighestPrice() sqlca.Decimal {
+	return l.highestPrice
+}

@@ -14,7 +14,6 @@ type TickerLogic struct {
 	currentPrice sqlca.Decimal
 	lowestPrice  sqlca.Decimal
 	highestPrice sqlca.Decimal
-	pullBackRate sqlca.Decimal
 	canceler     context.CancelFunc
 }
 
@@ -50,7 +49,7 @@ func (l *TickerLogic) updateMarketPrice(symbol string) error {
 		return log.Errorf(err)
 	}
 	if len(ts) == 0 {
-		return log.Errorf("symbol %s market not exist", symbol)
+		return log.Errorf("symbol %s price ticker not found", symbol)
 	}
 	price := ts[0]
 
@@ -70,8 +69,7 @@ func (l *TickerLogic) updateMarketPrice(symbol string) error {
 	} else if l.highestPrice.LessThan(marketPrice) {
 		l.highestPrice = marketPrice
 	}
-
-	log.Infof("symbol [%s] market [%v] low [%v] high [%v]", symbol, l.currentPrice, l.lowestPrice, l.highestPrice)
+	log.Infof("[%s] market price %v", symbol, l.currentPrice)
 	return nil
 }
 

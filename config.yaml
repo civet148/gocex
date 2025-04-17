@@ -5,7 +5,7 @@ ApiPassphrase:
 CexName: "okex"
 
 Strategy:
-  CheckDur: "1m"      # 检查时间
+  CheckDur: "3m"      # 检查时间
   PriceFlat: 0.001    # 正负范围内视为持平
   SlowRise: 0.002     # 慢涨
   FastRise: 0.003     # 暴涨

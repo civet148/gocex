@@ -24,6 +24,7 @@ var (
 
 const (
 	CmdFlag_Config = "config"
+	CmdFlag_Debug  = "debug"
 )
 
 func init() {
@@ -65,9 +66,20 @@ func main() {
 				Aliases: []string{"c"},
 				Value:   "config.yaml",
 			},
+			&cli.BoolFlag{
+				Name:    CmdFlag_Debug,
+				Usage:   "debug",
+				Aliases: []string{"d"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
+
+			if ctx.Bool(CmdFlag_Debug) {
+				log.SetLevel("debug")
+			}
+
 			var c config.Config
+
 			//设置配置文件
 			viper.SetConfigFile(ctx.String(CmdFlag_Config))
 

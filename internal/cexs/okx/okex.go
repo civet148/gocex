@@ -8,6 +8,7 @@ import (
 )
 
 type CexOkex struct {
+	api.CexUnimplInterface
 	client *okex.Client
 }
 

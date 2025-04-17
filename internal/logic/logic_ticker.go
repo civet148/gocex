@@ -69,7 +69,7 @@ func (l *TickerLogic) updateMarketPrice(symbol string) error {
 	} else if l.highestPrice.LessThan(marketPrice) {
 		l.highestPrice = marketPrice
 	}
-	log.Infof("[%s] market price %v", symbol, l.currentPrice)
+	log.Debugf("[%s] market price [%v]", symbol, l.currentPrice)
 	return nil
 }
 

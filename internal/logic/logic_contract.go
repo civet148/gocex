@@ -66,6 +66,6 @@ func (l *ContractLogic) getAction(ticker *TickerLogic) Action {
 	}
 	diff := curPrice.Sub(comparePrice)
 	rise := diff.Div(comparePrice)
-	log.Infof("[%v] last: %v current: %v rise: %v％", contract.Symbol, comparePrice, curPrice, rise.Mul(100).Round(2))
+	log.Infof("[%v] last: %v current: %v rise: [%v％]", contract.Symbol, comparePrice, curPrice, rise.Mul(100).Round(2))
 	return ActionWait
 }

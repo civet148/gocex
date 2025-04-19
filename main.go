@@ -29,6 +29,10 @@ const (
 
 func init() {
 	log.SetLevel("info")
+	err := log.Open("gocex.log")
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func grace() {

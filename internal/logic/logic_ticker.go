@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+type Ticker interface {
+	GetCurrentPrice() sqlca.Decimal
+	GetLowestPrice() sqlca.Decimal
+	GetHighestPrice() sqlca.Decimal
+}
+
 type TickerLogic struct {
 	cex          api.CexApi
 	currentPrice sqlca.Decimal
@@ -17,16 +23,18 @@ type TickerLogic struct {
 	canceler     context.CancelFunc
 }
 
-func NewTickerLogic(cex api.CexApi) *TickerLogic {
-	return &TickerLogic{
+func NewTickerLogic(cex api.CexApi, symbol string, interval time.Duration) *TickerLogic {
+	ticker := &TickerLogic{
 		cex: cex,
 	}
+	return ticker.start(symbol, interval)
 }
 
-func (l *TickerLogic) Start(symbol string, interval time.Duration) {
+func (l *TickerLogic) start(symbol string, interval time.Duration) *TickerLogic {
 	ctx, canceler := context.WithCancel(context.Background())
 	l.canceler = canceler
 	go l.startTicker(ctx, symbol, interval)
+	return l
 }
 
 func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval time.Duration) {

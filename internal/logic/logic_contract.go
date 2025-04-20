@@ -3,8 +3,6 @@ package logic
 import (
 	"github.com/civet148/gocex/internal/api"
 	"github.com/civet148/gocex/internal/config"
-	"github.com/civet148/gocex/internal/utils"
-	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
 )
 
@@ -31,49 +29,8 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 }
 
 func (l *ContractLogic) Exec() error {
-	//var ticker = NewTickerLogic(l.cex, c.Symbol, c.TickerDur) //市价行情
-	//strategy := NewContractStrategy(ticker, 8) // 使用8倍杠杆
-	//for {
-	//	act := l.getAction(ticker)
-	//	switch act {
-	//	case ActionWait:
-	//	case ActionPos:
-	//	case ActionClose:
-	//	}
-	//	time.Sleep(l.cfg.CheckDur)
-	//}
-	return nil
-}
-
-func (l *ContractLogic) getAction(ticker *TickerLogic) Action {
-	contract := l.cfg
-	now64 := utils.NowUnix()
-	curPrice := ticker.GetCurrentPrice()
-	comparePrice := l.comparePrice
-	compareTime := l.compareTime
-
-	defer func() {
-		l.compareTime = now64
-		l.comparePrice = curPrice
-	}()
-
-	if compareTime == 0 || comparePrice.IsZero() {
-		return ActionWait
-	}
-	diff := curPrice.Sub(comparePrice)
-	rise := diff.Div(comparePrice)
-	log.Infof("[%v] last: %v current: %v rise: [%v％]", contract.Symbol, utils.FormatDecimal(comparePrice, 9), utils.FormatDecimal(curPrice, 9), l.GetPercentRise(rise))
-	return ActionWait
-}
-
-func (l *ContractLogic) GetPercentRise(rise sqlca.Decimal) string {
-	c := l.cfg
-	strPercent := rise.Mul(100).Round(2).String()
-	if rise.LessThan(0) {
-		return utils.Red(strPercent)
-	}
-	if rise.Float64() < c.FastRise {
-		return utils.White(strPercent)
-	}
-	return utils.Green(strPercent)
+	cfg := l.cfg
+	var ticker = NewTickerLogic(l.cex, cfg.Symbol, cfg.TickerDur) //市价行情
+	strategy := NewContractStrategy(cfg, ticker)                  // 使用8倍杠杆
+	return strategy.Start()
 }

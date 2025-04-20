@@ -39,11 +39,16 @@ func (l *TickerLogic) start(symbol string, interval time.Duration) *TickerLogic 
 
 func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval time.Duration) {
 	tc := time.NewTicker(interval)
-	_ = l.updateMarketPrice(symbol)
+	err := l.refreshMarketPrice(symbol)
+	if err != nil {
+		log.Printf("get %s market price error: %s", symbol, err)
+		return
+	}
+
 	for {
 		select {
 		case <-tc.C:
-			_ = l.updateMarketPrice(symbol)
+			_ = l.refreshMarketPrice(symbol)
 		case <-ctx.Done():
 			return
 		}
@@ -51,7 +56,7 @@ func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval t
 	}
 }
 
-func (l *TickerLogic) updateMarketPrice(symbol string) error {
+func (l *TickerLogic) refreshMarketPrice(symbol string) error {
 	ts, err := l.cex.GetTickerPrice(symbol)
 	if err != nil {
 		return log.Errorf(err)
@@ -77,7 +82,7 @@ func (l *TickerLogic) updateMarketPrice(symbol string) error {
 	} else if l.highestPrice.LessThan(marketPrice) {
 		l.highestPrice = marketPrice
 	}
-	log.Debugf("[%s] market price [%v]", symbol, l.currentPrice)
+	log.Printf("[%s] market price [%v]", symbol, l.currentPrice)
 	return nil
 }
 

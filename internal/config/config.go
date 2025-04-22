@@ -15,7 +15,6 @@ type Config struct {
 	TickerDur         time.Duration `yaml:"TickerDur"`                          //市场价更新时间
 	CheckDur          time.Duration `yaml:"CheckDur"`                           //市价检查间隔
 	OrderDur          time.Duration `yaml:"OrderDur"`                           //下单时间间隔
-	FlatRise          float64       `yaml:"FlatRise"`                           //正负范围内视为持平
 	FastRise          float64       `yaml:"FastRise"`                           //暴涨或暴跌
 	RiseThreshold     float64       `yaml:"RiseThreshold"`                      //涨幅触发阈值
 	StopLossPercent   float64       `yaml:"StopLossPercent"`                    //止损百分比

@@ -4,12 +4,11 @@ ApiSecret:
 ApiPassphrase:
 CexName: "okex"
 Symbol: "PEPE-USDT"     # 交易对
-CheckDur: "20s"         # 价格检查时间
+CheckDur: "30s"         # 价格检查时间
 TickerDur: "5s"        # 市场价更新时间
 OrderDur: "15m"         # 订单下单时间间隔
 Leverage: 3             # 杠杆倍数
-FlatRise: 0.001         # 正负范围内视为持平
-FastRise: 0.005         # 暴跌/暴涨
+FastRise: 0.002         # 暴跌/暴涨
 RiseThreshold: 0.015    # 涨幅触发阈值
 StopLossPercent: 0.03   # 止损百分比
 TakeProfitPercent: 0.05 # 止盈百分比

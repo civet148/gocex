@@ -67,7 +67,7 @@ func (cs *ContractStrategy) checkEntryCondition(currentPrice sqlca.Decimal) {
 		return
 	}
 	rise := sqlca.NewDecimal(risePct)
-	log.Printf("[%v] base: %v current: %v rise: [%v％]",
+	log.Printf("[%v] 锚定价: %v 市价: %v 涨跌幅: [%v％]",
 		cs.cfg.Symbol, utils.FormatDecimal(cs.basePrice, 9),
 		utils.FormatDecimal(currentPrice, 9), cs.getPercentRise(rise))
 
@@ -84,7 +84,7 @@ func (cs *ContractStrategy) checkEntryCondition(currentPrice sqlca.Decimal) {
 
 func (cs *ContractStrategy) checkExitCondition(currentPrice sqlca.Decimal) {
 	if cs.entryPrice.IsZero() {
-		log.Errorf("entry price is 0")
+		log.Errorf("开仓价为0")
 		return
 	}
 	// 更新最高价
@@ -94,7 +94,7 @@ func (cs *ContractStrategy) checkExitCondition(currentPrice sqlca.Decimal) {
 
 	// 计算盈亏比例
 	profitPct := (currentPrice.Float64() - cs.entryPrice.Float64()) / cs.entryPrice.Float64() * float64(cs.leverage)
-	log.Printf("[%v] entry: %v current: %v profit: [%v％]",
+	log.Printf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％]",
 		cs.cfg.Symbol, utils.FormatDecimal(cs.entryPrice, 9),
 		utils.FormatDecimal(currentPrice, 9), cs.getPercentRise(sqlca.NewDecimal(profitPct)))
 	// 止盈或止损检查
@@ -104,7 +104,7 @@ func (cs *ContractStrategy) checkExitCondition(currentPrice sqlca.Decimal) {
 }
 
 func (cs *ContractStrategy) openPosition(price sqlca.Decimal) {
-	log.Printf("开仓信号 价格: %v 杠杆: %d倍", utils.FormatDecimal(price, 9), cs.leverage)
+	log.Printf("[%v] 开仓信号 价格: %v 杠杆: %d倍", cs.cfg.Symbol, utils.FormatDecimal(price, 9), cs.leverage)
 	cs.position = true
 	cs.entryPrice = price
 	cs.highestPrice = price
@@ -115,7 +115,7 @@ func (cs *ContractStrategy) openPosition(price sqlca.Decimal) {
 
 func (cs *ContractStrategy) closePosition(price sqlca.Decimal) {
 	profit := (price.Float64() - cs.entryPrice.Float64()) / cs.entryPrice.Float64() * float64(cs.leverage)
-	log.Printf("平仓信号 价格: %v 收益率: %.2f%%", utils.FormatDecimal(price, 9), profit*100)
+	log.Printf("[%v] 平仓信号 价格: %v 收益率: %.2f%%", cs.cfg.Symbol, utils.FormatDecimal(price, 9), profit*100)
 	cs.position = false
 
 	// TODO: 实现实际合约平仓

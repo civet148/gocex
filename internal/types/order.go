@@ -37,3 +37,17 @@ type OrderListDetail struct {
 	TradeId     string        `json:"tradeId"`
 	UTime       int64         `json:"uTime"`
 }
+
+type OrderDetail struct {
+	OrdId   string `json:"ordId"`
+	ClOrdId string `json:"clOrdId"`
+	Tag     string `json:"tag"`
+	SCode   string `json:"sCode"`
+	SMsg    string `json:"sMsg"`
+	ReqId   string `json:"reqId"`
+}
+
+type ClosePositionDetail struct {
+	InstId  string `json:"instId"`
+	PosSide string `json:"posSide"`
+}

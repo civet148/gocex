@@ -8,15 +8,15 @@ import (
 	"github.com/tbtc-bot/go-okex"
 )
 
-func (m *CexOkex) GetBalance(ccy string) (balance *types.Balance, err error) {
-	bs, err := m.GetBalances(ccy)
+func (m *CexOkex) GetBalance(ctx context.Context, ccy string) (balance *types.Balance, err error) {
+	bs, err := m.GetBalances(ctx, ccy)
 	if err != nil {
 		return nil, err
 	}
 	return bs[0], nil
 }
 
-func (m *CexOkex) GetBalances(ccys ...string) (balances []*types.Balance, err error) {
+func (m *CexOkex) GetBalances(ctx context.Context, ccys ...string) (balances []*types.Balance, err error) {
 	svc := m.client.NewGetBalanceService()
 	var res *okex.GetBalanceServiceResponse
 	if len(ccys) > 0 {

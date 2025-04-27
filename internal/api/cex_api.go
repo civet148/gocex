@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"github.com/civet148/gocex/internal/config"
+	"github.com/civet148/gocex/internal/options"
 	"github.com/civet148/gocex/internal/types"
 	"github.com/civet148/log"
+	"github.com/civet148/sqlca/v2"
 )
 
 type CexApi interface {
@@ -36,8 +39,8 @@ type CommonApi interface {
 }
 
 type AccountApi interface {
-	GetBalance(ccy string) (balance *types.Balance, err error)
-	GetBalances(ccys ...string) (balances []*types.Balance, err error)
+	GetBalance(ctx context.Context, ccy string) (balance *types.Balance, err error)
+	GetBalances(ctx context.Context, ccys ...string) (balances []*types.Balance, err error)
 }
 
 type SpotApi interface {
@@ -47,9 +50,13 @@ type ContractApi interface {
 }
 
 type MarketApi interface {
-	GetTickerPrice(symbol string) ([]*types.TickerDetail, error)
+	GetTickerPrice(ctx context.Context, symbol string) ([]*types.TickerDetail, error)
 }
 
 type OrderApi interface {
-	GetOrder(symbols ...string) (orders []*types.OrderListDetail, err error)
+	GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                      //订单列表
+	PlaceOrder(ctx context.Context, side types.SideType, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //订单下单
+	GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                   //仓位
+	OpenPosition(ctx context.Context, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)                    //开仓
+	ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                    //平仓
 }

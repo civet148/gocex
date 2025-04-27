@@ -1,18 +1,18 @@
-
+Debug: true
 ApiKey:
 ApiSecret:
 ApiPassphrase:
 CexName: "okex"
 Symbol: "PEPE-USDT"     # 交易对
 CheckDur: "30s"         # 价格检查时间
-TickerDur: "5s"        # 市场价更新时间
+Continuous: 5           # 价格持续上涨次数
+TickerDur: "5s"         # 市场价更新时间
 OrderDur: "15m"         # 订单下单时间间隔
-Leverage: 3             # 杠杆倍数
-FastRise: 0.002         # 暴跌/暴涨
+Leverage: 10            # 杠杆倍数
+FastRise: 0.001         # 暴涨比例
 RiseThreshold: 0.015    # 涨幅触发阈值
-StopLossPercent: 0.03   # 止损百分比
-TakeProfitPercent: 0.05 # 止盈百分比
-PullBackRate: 0.015     # 价格回调比例
-TradeAmountRate: 0.1    # 交易金额比例（余额百分比）
+StopLossPct: 0.01       # 止损百分比
+PullBackRate: 0.018     # 价格回调比例
+TradeAmountRate: 0.5    # 交易金额比例（余额百分比）
 
 

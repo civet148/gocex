@@ -3,34 +3,169 @@ package logic
 import (
 	"github.com/civet148/gocex/internal/api"
 	"github.com/civet148/gocex/internal/config"
+	"github.com/civet148/gocex/internal/utils"
+	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
-)
-
-type Action int32
-
-const (
-	ActionWait  Action = 0 //等待
-	ActionPos   Action = 1 //持仓
-	ActionClose Action = 2 //平仓
+	"time"
 )
 
 type ContractLogic struct {
-	cex          api.CexApi     //交易所对象
-	cfg          *config.Config //配置
-	comparePrice sqlca.Decimal  //对比价格
-	compareTime  int64          //对比时间
+	*config.Config
+	cex          api.CexApi    // 交易所对象
+	ticker       Ticker        // 市价ticker对象
+	symbol       string        // 交易代币对
+	basePrice    sqlca.Decimal // 基础价格
+	lastPrice    sqlca.Decimal // 上次检查的价格
+	position     bool          // 是否已持仓
+	entryPrice   sqlca.Decimal // 开仓价
+	highestPrice sqlca.Decimal // 最高价
+	continuous   int32         // 价格持续上涨次数
 }
 
 func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
+	var ticker = NewTickerLogic(cex, cfg.Symbol, cfg.TickerDur) //市价行情
 	return &ContractLogic{
-		cfg: cfg,
-		cex: cex,
+		Config: cfg,
+		cex:    cex,
+		ticker: ticker,
+		symbol: cfg.Symbol,
 	}
 }
 
-func (l *ContractLogic) Exec() error {
-	cfg := l.cfg
-	var ticker = NewTickerLogic(l.cex, cfg.Symbol, cfg.TickerDur) //市价行情
-	strategy := NewContractStrategy(cfg, ticker)                  // 使用8倍杠杆
-	return strategy.Start()
+func (l *ContractLogic) Exec() (err error) {
+	// 初始化基准价格
+	l.basePrice = l.ticker.GetCurrentPrice()
+	ticker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
+	defer ticker.Stop()
+
+	for range ticker.C {
+		l.monitorPrice()
+	}
+	return nil
+}
+
+func (l *ContractLogic) monitorPrice() {
+	currentPrice := l.ticker.GetCurrentPrice()
+	if currentPrice.IsZero() {
+		log.Errorf("current price is 0")
+		return
+	}
+	if !l.position {
+		l.checkEntryCondition(currentPrice)
+	} else {
+		l.checkExitCondition(currentPrice)
+	}
+}
+
+func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
+	if l.basePrice.IsZero() {
+		l.basePrice = currentPrice
+	}
+	if l.lastPrice.IsZero() {
+		l.lastPrice = currentPrice
+	}
+	// 计算从基准价的涨幅
+	riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
+
+	// 计算上次检查价格的涨幅
+	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
+
+	if riseLast.GreaterThan(l.FastRise) {
+		l.continuous++
+	} else {
+		l.continuous = 0
+	}
+	log.Printf("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
+		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
+		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.continuous)
+
+	// 满足上涨阈值且未持仓
+	if riseBase.GreaterThanOrEqual(l.RiseThreshold) || l.continuous > l.Continuous {
+		l.openPosition(currentPrice)
+		l.continuous = 0
+	}
+
+	// 更新基准价(动态调整)
+	if currentPrice.Float64() < l.basePrice.Float64() {
+		l.basePrice = currentPrice
+	}
+	// 更新上次价格
+	l.lastPrice = currentPrice
+}
+
+func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
+	if l.entryPrice.IsZero() {
+		log.Errorf("开仓价为0")
+		return
+	}
+	// 更新最高价
+	if currentPrice.Float64() > l.highestPrice.Float64() {
+		l.highestPrice = currentPrice
+	}
+
+	var closePos bool
+
+	// 计算从最高价的回调幅度
+	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
+
+	// 计算盈亏比例
+	profitPct := currentPrice.Sub(l.entryPrice).Div(l.entryPrice).Mul(l.Leverage)
+
+	log.Printf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
+		l.Symbol,
+		utils.FormatDecimal(l.entryPrice, 9),
+		utils.FormatDecimal(currentPrice, 9),
+		l.formatRisePercent(profitPct),
+		l.formatRisePercent(risePct),
+	)
+
+	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) { //价格从最高价跌破指定百分比
+		closePos = true
+		log.Warnf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％] 已触发平仓",
+			l.Symbol,
+			utils.FormatDecimal(l.entryPrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.formatRisePercent(profitPct),
+			l.formatRisePercent(risePct),
+		)
+	}
+
+	// 止损检查
+	if risePct.LessThan(0) && profitPct.Abs().GreaterThan(l.StopLossPct) {
+		closePos = true
+	}
+	if closePos {
+		l.closePosition(currentPrice)
+	}
+}
+
+func (l *ContractLogic) openPosition(price sqlca.Decimal) {
+	log.Printf("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
+	l.position = true
+	l.entryPrice = price
+	l.highestPrice = price
+
+	// TODO: 实现实际合约开仓
+	// 这里应包含杠杆设置和风险控制
+}
+
+func (l *ContractLogic) closePosition(price sqlca.Decimal) {
+	profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
+	log.Printf("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+	l.position = false
+
+	// TODO: 实现实际合约平仓
+	// 重置状态
+	l.basePrice = price // 平仓后重置基准价
+}
+
+func (l *ContractLogic) formatRisePercent(rise sqlca.Decimal) string {
+	strPercent := rise.Mul(100).Round(2).String()
+	if rise.LessThan(0) {
+		return utils.Red(strPercent)
+	}
+	if rise.Float64() < l.FastRise {
+		return utils.White(strPercent)
+	}
+	return utils.Green(strPercent)
 }

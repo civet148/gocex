@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/civet148/sqlca/v2"
 	"github.com/shopspring/decimal"
+	"strconv"
 )
 
 func FormatDecimal(d sqlca.Decimal, precision int) string {
@@ -16,4 +17,18 @@ func FormatDecimal(d sqlca.Decimal, precision int) string {
 
 	// 将整数和小数组合
 	return fmt.Sprintf("%d.%s", intPart, fracStr)
+}
+
+func AnyToString(v any) string {
+	return fmt.Sprintf("%v", v)
+}
+
+func StringToUint64(v string) uint64 {
+	u, _ := strconv.ParseUint(v, 10, 64)
+	return u
+}
+
+func StringToInt32(v string) int32 {
+	u, _ := strconv.ParseUint(v, 10, 32)
+	return int32(u)
 }

@@ -57,7 +57,7 @@ func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval t
 }
 
 func (l *TickerLogic) refreshMarketPrice(symbol string) error {
-	ts, err := l.cex.GetTickerPrice(symbol)
+	ts, err := l.cex.GetTickerPrice(context.Background(), symbol)
 	if err != nil {
 		return log.Errorf(err)
 	}

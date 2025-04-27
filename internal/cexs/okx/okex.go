@@ -17,11 +17,13 @@ func init() {
 }
 
 func NewCex(c *config.Config) api.CexApi {
+	client := okex.NewClient(c.ApiKey, c.ApiSecret, c.ApiPassphrase)
+	client.Debug = c.Debug
 	return &CexOkex{
-		client: okex.NewClient(c.ApiKey, c.ApiSecret, c.ApiPassphrase),
+		client: client,
 	}
 }
 
-func (c *CexOkex) Name() string {
+func (m *CexOkex) Name() string {
 	return string(types.CexNameOkex)
 }

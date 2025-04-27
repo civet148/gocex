@@ -26,6 +26,8 @@ github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5P
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/civet148/copier v0.4.8 h1:VRdLHw5yJXtQrKs/WELobLWOUPdqpc53N43lk3MMmGY=
 github.com/civet148/copier v0.4.8/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
+github.com/civet148/go-okex v0.4.8 h1:nc9WtT53vRNFj1C4NJCP6f1qda8ZkQjbEnlRS4CSPvw=
+github.com/civet148/go-okex v0.4.8/go.mod h1:ExUJTSEnLqzGI9xxXoHEKsdw0ggVF27D97vLC18UJxE=
 github.com/civet148/godotenv v0.1.0 h1:AbMDY5kxrhcc+fH5gQBWwOhcaq6YxUWepEqOolNPBh4=
 github.com/civet148/godotenv v0.1.0/go.mod h1:Nxe0dPhivvn0/hdpOYosW40wb8bKMj3Wv5HH3/x7hYI=
 github.com/civet148/gotools v1.4.1 h1:9E2rVOUIebQvdG/75iEc1/nqWxqmrUTSWepl0dbaGHo=
@@ -275,8 +277,6 @@ github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKs
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
-github.com/tbtc-bot/go-okex v0.4.7 h1:yRilKu2aien1OI8BDbXTGT5ssTv4bwWFKQf1q30P1Cc=
-github.com/tbtc-bot/go-okex v0.4.7/go.mod h1:ExUJTSEnLqzGI9xxXoHEKsdw0ggVF27D97vLC18UJxE=
 github.com/tjfoc/gmsm v1.4.1 h1:aMe1GlZb+0bLjn+cKTPEvvn9oUEBlJitaZiiBwsbgho=
 github.com/tjfoc/gmsm v1.4.1/go.mod h1:j4INPkHWMrhJb38G+J6W4Tw0AbuN8Thu3PbdVYhVcTE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=

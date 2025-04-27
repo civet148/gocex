@@ -7,6 +7,7 @@ require (
 	github.com/civet148/log v1.7.2
 	github.com/civet148/sqlca/v2 v2.11.6
 	github.com/jinzhu/copier v0.4.0
+	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.6.1
 	github.com/tbtc-bot/go-okex v0.4.7
 	github.com/urfave/cli/v2 v2.4.0
@@ -14,6 +15,7 @@ require (
 
 replace (
 	github.com/jinzhu/copier v0.4.0 => github.com/civet148/copier v0.4.8
+	github.com/tbtc-bot/go-okex v0.4.7 => github.com/civet148/go-okex v0.4.8
 	nhooyr.io/websocket v1.8.7 => github.com/coder/websocket v1.8.7
 )
 
@@ -43,7 +45,6 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/afero v1.1.2 // indirect
 	github.com/spf13/cast v1.3.0 // indirect
 	github.com/spf13/jwalterweatherman v1.0.0 // indirect

@@ -232,13 +232,16 @@ var cmdPosOpen = &cli.Command{
 		}
 		cexName := types.CexName(ctx.String(CmdFlag_Cex))
 		symbol := ctx.String(CmdFlag_Symbol)
-		px := sqlca.NewDecimal(ctx.String(CmdFlag_Px))
 		sz := sqlca.NewDecimal(ctx.String(CmdFlag_Sz))
 		lever := ctx.String(CmdFlag_Lever)
 		orderType := types.OrderType(ctx.String(CmdFlag_OrderType))
 		posSideType := types.PositionSideType(ctx.String(CmdFlag_PosSideType))
 		tradeMode := types.TradeMode(ctx.String(CmdFlag_TradeMode))
 
+		var px sqlca.Decimal
+		if ctx.IsSet(CmdFlag_Px) {
+			px = sqlca.NewDecimal(ctx.String(CmdFlag_Px))
+		}
 		var opts []options.TradeOption
 
 		if lever != "" && lever != "0" {

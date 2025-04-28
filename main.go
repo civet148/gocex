@@ -194,9 +194,8 @@ var cmdPosOpen = &cli.Command{
 			Value:   types.PEPEUSDT,
 		},
 		&cli.StringFlag{
-			Name:     CmdFlag_Px,
-			Aliases:  []string{"p"},
-			Required: true,
+			Name:    CmdFlag_Px,
+			Aliases: []string{"p"},
 		},
 		&cli.StringFlag{
 			Name:     CmdFlag_Sz,
@@ -254,11 +253,14 @@ var cmdPosOpen = &cli.Command{
 		if tradeMode != "" {
 			opts = append(opts, options.WithTradeMode(tradeMode))
 		}
+		if px.GreaterThan(0) {
+			opts = append(opts, options.WithPrice(px.String()))
+		}
 
 		cex := api.NewCex(cexName, c)
 		var orders []*types.OrderDetail
 
-		orders, err = cex.OpenPosition(context.Background(), symbol, px, sz, opts...)
+		orders, err = cex.OpenPosition(context.Background(), symbol, sz, opts...)
 		if err != nil {
 			return log.Errorf(err.Error())
 		}
@@ -274,6 +276,7 @@ var cmdPosClose = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    CmdFlag_Symbol,
+			Usage:   "example PEPE-USDT",
 			Aliases: []string{"s"},
 			Value:   types.PEPEUSDT,
 		},

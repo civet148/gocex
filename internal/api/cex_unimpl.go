@@ -40,7 +40,7 @@ func (m *CexUnimplement) GetPosition(ctx context.Context, symbols ...string) (or
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) OpenPosition(ctx context.Context, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
+func (m *CexUnimplement) OpenPosition(ctx context.Context, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
 	return nil, types.ErrorNotSupport
 }
 

@@ -5,6 +5,7 @@ import "github.com/civet148/gocex/internal/types"
 type TradeConfig struct {
 	Leverage     *string                 //杠杆倍数
 	Swap         *bool                   //是否为合约
+	Px           *string                 //价格
 	OrderType    *types.OrderType        //订单类型(限价/市价/FOK...)
 	PositionSide *types.PositionSideType //持仓方向(永续/交割...)
 	TradeMode    *types.TradeMode        //交易模式(逐仓/全仓/现金)
@@ -20,6 +21,12 @@ func GetTradeConfig(options ...TradeOption) *TradeConfig {
 		o(&tradeOption)
 	}
 	return &tradeOption
+}
+
+func WithPrice(px string) TradeOption {
+	return func(c *TradeConfig) {
+		c.Px = &px
+	}
 }
 
 func WithLever(leverage string) TradeOption {

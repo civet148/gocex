@@ -54,9 +54,9 @@ type MarketApi interface {
 }
 
 type OrderApi interface {
-	GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                      //订单列表
-	PlaceOrder(ctx context.Context, side types.SideType, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //订单下单
-	GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                   //仓位
-	OpenPosition(ctx context.Context, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)                    //开仓
-	ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                    //平仓
+	GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                  //订单列表
+	PlaceOrder(ctx context.Context, side types.SideType, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //订单下单
+	GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                               //仓位
+	OpenPosition(ctx context.Context, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)                    //开仓
+	ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                //平仓
 }

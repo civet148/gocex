@@ -39,7 +39,7 @@ const (
 	CmdFlag_Config      = "config"
 	CmdFlag_Debug       = "debug"
 	CmdFlag_Cex         = "cex"
-	CmdFlag_Symbol      = "symbol"
+	CmdFlag_InstId      = "inst-id"
 	CmdFlag_Px          = "px"
 	CmdFlag_Sz          = "sz"
 	CmdFlag_Lever       = "lever"
@@ -47,6 +47,7 @@ const (
 	CmdFlag_PosSideType = "pos-side"
 	CmdFlag_TradeMode   = "trade-mode"
 	CmdFlag_OrderId     = "order-id"
+	CmdFlag_SideType    = "side-type"
 )
 
 func init() {
@@ -189,17 +190,17 @@ var cmdPosOpen = &cli.Command{
 			Value:   string(types.CexNameOkex),
 		},
 		&cli.StringFlag{
-			Name:    CmdFlag_Symbol,
+			Name:    CmdFlag_InstId,
 			Aliases: []string{"s"},
 			Value:   types.PEPEUSDT,
 		},
 		&cli.StringFlag{
 			Name:    CmdFlag_Px,
-			Aliases: []string{"p"},
+			Aliases: []string{"p"}, //目标代币价格
 		},
 		&cli.StringFlag{
 			Name:     CmdFlag_Sz,
-			Aliases:  []string{"z"},
+			Aliases:  []string{"z"}, //购买的USDT数量
 			Required: true,
 		},
 		&cli.StringFlag{
@@ -222,6 +223,11 @@ var cmdPosOpen = &cli.Command{
 			Aliases: []string{"T"},
 			Value:   "", //不要设置默认值(仅必须的情况下设置)
 		},
+		&cli.StringFlag{
+			Name:    CmdFlag_SideType,
+			Aliases: []string{"S"},
+			Value:   string(types.SideTypeBuy), //buy=买多 sell=买空
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		var err error
@@ -231,12 +237,13 @@ var cmdPosOpen = &cli.Command{
 			log.Panic(err.Error())
 		}
 		cexName := types.CexName(ctx.String(CmdFlag_Cex))
-		symbol := ctx.String(CmdFlag_Symbol)
+		instId := ctx.String(CmdFlag_InstId)
 		sz := sqlca.NewDecimal(ctx.String(CmdFlag_Sz))
 		lever := ctx.String(CmdFlag_Lever)
 		orderType := types.OrderType(ctx.String(CmdFlag_OrderType))
 		posSideType := types.PositionSideType(ctx.String(CmdFlag_PosSideType))
 		tradeMode := types.TradeMode(ctx.String(CmdFlag_TradeMode))
+		sideType := types.SideType(ctx.String(CmdFlag_SideType))
 
 		var px sqlca.Decimal
 		if ctx.IsSet(CmdFlag_Px) {
@@ -245,7 +252,7 @@ var cmdPosOpen = &cli.Command{
 		var opts []options.TradeOption
 
 		if lever != "" && lever != "0" {
-			opts = append(opts, options.WithLever(lever))
+			opts = append(opts, options.WithLeverage(lever))
 		}
 		if orderType != "" {
 			opts = append(opts, options.WithOrderType(orderType))
@@ -263,7 +270,7 @@ var cmdPosOpen = &cli.Command{
 		cex := api.NewCex(cexName, c)
 		var orders []*types.OrderDetail
 
-		orders, err = cex.OpenPosition(context.Background(), symbol, sz, opts...)
+		orders, err = cex.OpenPosition(context.Background(), instId, sideType, sz, opts...)
 		if err != nil {
 			return log.Errorf(err.Error())
 		}
@@ -278,7 +285,7 @@ var cmdPosClose = &cli.Command{
 	Usage:   "close position",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:    CmdFlag_Symbol,
+			Name:    CmdFlag_InstId,
 			Usage:   "example PEPE-USDT",
 			Aliases: []string{"s"},
 			Value:   types.PEPEUSDT,
@@ -303,7 +310,7 @@ var cmdPosClose = &cli.Command{
 		}
 		strCexName := types.CexName(ctx.String(CmdFlag_Cex))
 		cex := api.NewCex(strCexName, c)
-		symbol := ctx.String(CmdFlag_Symbol)
+		instId := ctx.String(CmdFlag_InstId)
 		orderId := ctx.String(CmdFlag_OrderId)
 		var opts []options.TradeOption
 
@@ -311,7 +318,7 @@ var cmdPosClose = &cli.Command{
 			opts = append(opts, options.WithCliOrdId(orderId))
 		}
 		var orders []*types.ClosePositionDetail
-		orders, err = cex.ClosePosition(context.Background(), symbol, opts...)
+		orders, err = cex.ClosePosition(context.Background(), instId, opts...)
 		if err != nil {
 			return log.Errorf(err.Error())
 		}

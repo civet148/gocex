@@ -1,6 +1,9 @@
 package options
 
-import "github.com/civet148/gocex/internal/types"
+import (
+	"github.com/civet148/gocex/internal/types"
+	"github.com/civet148/log"
+)
 
 type TradeConfig struct {
 	Leverage     *string                 //杠杆倍数
@@ -11,16 +14,18 @@ type TradeConfig struct {
 	TradeMode    *types.TradeMode        //交易模式(逐仓/全仓/现金)
 	MgnMode      *types.MarginMode       //保证金模式(逐仓/全仓)
 	CliOrdId     *string                 //客户自定义订单ID
+	SideType     *types.SideType         //现货（buy=买 sell=买）合约（buy=多 sell=空）
 }
 
 type TradeOption func(o *TradeConfig)
 
 func GetTradeConfig(options ...TradeOption) *TradeConfig {
-	var tradeOption TradeConfig
+	var tradeOpts TradeConfig
 	for _, o := range options {
-		o(&tradeOption)
+		o(&tradeOpts)
 	}
-	return &tradeOption
+	log.Json("trade options", tradeOpts)
+	return &tradeOpts
 }
 
 func WithPrice(px string) TradeOption {
@@ -29,9 +34,15 @@ func WithPrice(px string) TradeOption {
 	}
 }
 
-func WithLever(leverage string) TradeOption {
+func WithLeverage(leverage string) TradeOption {
 	return func(c *TradeConfig) {
 		c.Leverage = &leverage
+	}
+}
+
+func WithSideType(sideType types.SideType) TradeOption {
+	return func(c *TradeConfig) {
+		c.SideType = &sideType
 	}
 }
 

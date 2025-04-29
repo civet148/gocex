@@ -40,3 +40,10 @@ type Balance struct {
 	TotalEq     sqlca.Decimal    `json:"totalEq"`
 	UTime       int64            `json:"uTime"`
 }
+
+type LeverageDetail struct {
+	InstId  string `json:"instId"`
+	MgnMode string `json:"mgnMode"`
+	PosSide string `json:"posSide"`
+	Lever   string `json:"lever"`
+}

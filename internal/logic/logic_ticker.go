@@ -23,32 +23,32 @@ type TickerLogic struct {
 	canceler     context.CancelFunc
 }
 
-func NewTickerLogic(cex api.CexApi, symbol string, interval time.Duration) *TickerLogic {
+func NewTickerLogic(cex api.CexApi, instId string, interval time.Duration) *TickerLogic {
 	ticker := &TickerLogic{
 		cex: cex,
 	}
-	return ticker.start(symbol, interval)
+	return ticker.start(instId, interval)
 }
 
-func (l *TickerLogic) start(symbol string, interval time.Duration) *TickerLogic {
+func (l *TickerLogic) start(instId string, interval time.Duration) *TickerLogic {
 	ctx, canceler := context.WithCancel(context.Background())
 	l.canceler = canceler
-	go l.startTicker(ctx, symbol, interval)
+	go l.startTicker(ctx, instId, interval)
 	return l
 }
 
-func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval time.Duration) {
+func (l *TickerLogic) startTicker(ctx context.Context, instId string, interval time.Duration) {
 	tc := time.NewTicker(interval)
-	err := l.refreshMarketPrice(symbol)
+	err := l.refreshMarketPrice(instId)
 	if err != nil {
-		log.Printf("get %s market price error: %s", symbol, err)
+		log.Printf("get %s market price error: %s", instId, err)
 		return
 	}
 
 	for {
 		select {
 		case <-tc.C:
-			_ = l.refreshMarketPrice(symbol)
+			_ = l.refreshMarketPrice(instId)
 		case <-ctx.Done():
 			return
 		}
@@ -56,13 +56,13 @@ func (l *TickerLogic) startTicker(ctx context.Context, symbol string, interval t
 	}
 }
 
-func (l *TickerLogic) refreshMarketPrice(symbol string) error {
-	ts, err := l.cex.GetTickerPrice(context.Background(), symbol)
+func (l *TickerLogic) refreshMarketPrice(instId string) error {
+	ts, err := l.cex.GetTickerPrice(context.Background(), instId)
 	if err != nil {
 		return log.Errorf(err)
 	}
 	if len(ts) == 0 {
-		return log.Errorf("symbol %s price ticker not found", symbol)
+		return log.Errorf("instId %s price ticker not found", instId)
 	}
 	price := ts[0]
 
@@ -82,7 +82,7 @@ func (l *TickerLogic) refreshMarketPrice(symbol string) error {
 	} else if l.highestPrice.LessThan(marketPrice) {
 		l.highestPrice = marketPrice
 	}
-	//log.Debugf("[%s] market price [%v]", symbol, l.currentPrice)
+	//log.Debugf("[%s] market price [%v]", instId, l.currentPrice)
 	return nil
 }
 

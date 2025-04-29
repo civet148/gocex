@@ -24,26 +24,34 @@ func (m *CexUnimplement) GetBalances(ctx context.Context, ccys ...string) (balan
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) GetTickerPrice(ctx context.Context, symbol string) (tickers []*types.TickerDetail, err error) {
+func (m *CexUnimplement) GetTickerPrice(ctx context.Context, instId string) (tickers []*types.TickerDetail, err error) {
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error) {
+func (m *CexUnimplement) GetOrder(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error) {
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) PlaceOrder(ctx context.Context, side types.SideType, symbol string, px, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) {
+func (m *CexUnimplement) PlaceOrder(ctx context.Context, sideType types.SideType, instId string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) {
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error) {
+func (m *CexUnimplement) GetPosition(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error) {
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) OpenPosition(ctx context.Context, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
+func (m *CexUnimplement) OpenPosition(ctx context.Context, instId string, sideType types.SideType, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
 	return nil, types.ErrorNotSupport
 }
 
-func (m *CexUnimplement) ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error) { //平仓
+func (m *CexUnimplement) ClosePosition(ctx context.Context, instId string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error) { //平仓
+	return nil, types.ErrorNotSupport
+}
+
+func (m *CexUnimplement) GetLeverage(ctx context.Context, instId string, mgnMode types.MarginMode, opts ...options.TradeOption) (leverages []*types.LeverageDetail, err error) {
+	return nil, types.ErrorNotSupport
+}
+
+func (m *CexUnimplement) SetLeverage(ctx context.Context, instId string, mgnMode types.MarginMode, opts ...options.TradeOption) (leverages []*types.LeverageDetail, err error) {
 	return nil, types.ErrorNotSupport
 }

@@ -11,10 +11,10 @@ import (
 	"github.com/tbtc-bot/go-okex"
 )
 
-func (m *CexOkex) GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error) {
+func (m *CexOkex) GetOrder(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error) {
 	svc := m.client.NewGetOrderListService()
-	if len(symbols) != 0 {
-		svc.InstrumentId(symbols[0])
+	if len(instIds) != 0 {
+		svc.InstrumentId(instIds[0])
 	}
 	res, err := svc.Do(ctx)
 	if err != nil {
@@ -24,19 +24,19 @@ func (m *CexOkex) GetOrder(ctx context.Context, symbols ...string) (orders []*ty
 	return orders, nil
 }
 
-// PlaceOrder 下单接口：市价单情况下sz表示USDT的数量 其他单需要价格px（此时sz是购买的代币数量）
-func (m *CexOkex) PlaceOrder(ctx context.Context, side types.SideType, symbol string, sz sqlca.Decimal, opts ...options.TradeOption) (orders []*types.OrderDetail, err error) {
+// PlaceOrder 下单接口：sz表示USDT的数量
+func (m *CexOkex) PlaceOrder(ctx context.Context, sideType types.SideType, instId string, sz sqlca.Decimal, opts ...options.TradeOption) (orders []*types.OrderDetail, err error) {
 	var tradeOpts = options.GetTradeConfig(opts...)
 	svc := m.client.NewPlaceOrderService()
 
-	if len(symbol) == 0 {
-		return nil, fmt.Errorf("symbol requires")
+	if len(instId) == 0 {
+		return nil, fmt.Errorf("instId requires")
 	}
 	if sz.LessThanOrEqual(0) {
 		return nil, fmt.Errorf("sz invalid")
 	}
 	if tradeOpts.Swap != nil && *tradeOpts.Swap {
-		symbol = types.ToSwapInstId(m.Name(), symbol) //构造合约交易对
+		instId = types.ToSwapInstId(m.Name(), instId) //构造合约交易对
 	}
 	if tradeOpts.Px != nil {
 		svc.OrderPrice(*tradeOpts.Px)
@@ -53,7 +53,7 @@ func (m *CexOkex) PlaceOrder(ctx context.Context, side types.SideType, symbol st
 	if tradeOpts.PositionSide != nil {
 		svc.PositionSide(okex.PositionSideType(*tradeOpts.PositionSide))
 	}
-	svc.InstrumentId(symbol).Side(okex.SideType(side)).Size(sz.String())
+	svc.InstrumentId(instId).Side(okex.SideType(sideType)).Size(sz.String())
 	res, err := svc.Do(ctx)
 	if err != nil {
 		return nil, log.Errorf(err)
@@ -62,10 +62,10 @@ func (m *CexOkex) PlaceOrder(ctx context.Context, side types.SideType, symbol st
 	return orders, nil
 }
 
-func (m *CexOkex) GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error) {
+func (m *CexOkex) GetPosition(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error) {
 	svc := m.client.NewGetPositionsService()
-	if len(symbols) != 0 {
-		svc.InstrumentId(symbols[0])
+	if len(instIds) != 0 {
+		svc.InstrumentId(instIds[0])
 	}
 	res, err := svc.Do(ctx)
 	if err != nil {
@@ -75,29 +75,31 @@ func (m *CexOkex) GetPosition(ctx context.Context, symbols ...string) (orders []
 	return orders, nil
 }
 
-func (m *CexOkex) OpenPosition(ctx context.Context, symbol string, sz sqlca.Decimal, opts ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
+func (m *CexOkex) OpenPosition(ctx context.Context, instId string, sideType types.SideType, sz sqlca.Decimal, opts ...options.TradeOption) (orders []*types.OrderDetail, err error) { //开仓
 	var tradeOpts = options.GetTradeConfig(opts...)
-	symbol = types.ToSwapInstId(m.Name(), symbol) //构造合约交易对
 
 	if tradeOpts.OrderType == nil {
 		opts = append(opts, options.WithOrderType(types.OrderTypeMarket))
 	}
-	if tradeOpts.Leverage == nil {
-		opts = append(opts, options.WithLever("1"))
-	}
 	if tradeOpts.TradeMode == nil {
 		opts = append(opts, options.WithTradeMode(types.TradeModeIsolated))
 	}
-	//if tradeOpts.PositionSide == nil {//不能设置默认（会提示参数错误）
-	//	opts = append(opts, options.WithPositionSide(types.PositionSideTypeLong))
-	//}
-	log.Json("trade options", tradeOpts)
-	return m.PlaceOrder(ctx, types.SideTypeBuy, symbol, sz, opts...)
+	if tradeOpts.MgnMode == nil {
+		opts = append(opts, options.WithMarginMode(types.MarginModeIsolated))
+	}
+	opts = append(opts, options.WithSwap())
+	tradeOpts = options.GetTradeConfig(opts...)
+
+	if tradeOpts.Leverage != nil {
+		//TODO: compare and update leverage
+	}
+
+	return m.PlaceOrder(ctx, sideType, instId, sz, opts...)
 }
 
-func (m *CexOkex) ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error) { //平仓
+func (m *CexOkex) ClosePosition(ctx context.Context, instId string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error) { //平仓
 	var tradeOpts = options.GetTradeConfig(opts...)
-	symbol = types.ToSwapInstId(m.Name(), symbol) //构造合约交易对
+	instId = types.ToSwapInstId(m.Name(), instId) //构造合约交易对
 	svc := m.client.NewClosePositionService()
 	if tradeOpts.MgnMode == nil {
 		svc.MarginMode(string(types.MarginModeIsolated))
@@ -107,7 +109,7 @@ func (m *CexOkex) ClosePosition(ctx context.Context, symbol string, opts ...opti
 	if tradeOpts.CliOrdId != nil {
 		svc.CliOrderId(*tradeOpts.CliOrdId)
 	}
-	svc.InstrumentId(symbol)
+	svc.InstrumentId(instId)
 	res, err := svc.Do(ctx)
 	if err != nil {
 		return nil, log.Errorf(err)

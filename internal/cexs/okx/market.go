@@ -7,12 +7,12 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-func (m *CexOkex) GetTickerPrice(ctx context.Context, symbol string) (tickers []*types.TickerDetail, err error) {
+func (m *CexOkex) GetTickerPrice(ctx context.Context, instId string) (tickers []*types.TickerDetail, err error) {
 	svc := m.client.NewGetTickerService()
-	if symbol == "" {
-		return nil, log.Errorf("symbol is empty")
+	if instId == "" {
+		return nil, log.Errorf("instId is empty")
 	}
-	res, err := svc.InstrumentId(symbol).Do(ctx)
+	res, err := svc.InstrumentId(instId).Do(ctx)
 	if err != nil {
 		return nil, log.Errorf("get ticker error: %s", err)
 	}

@@ -7,17 +7,17 @@ import (
 	"strings"
 )
 
-func ToSwapInstId(cexName string, symbol string) string {
-	symbol = strings.ToUpper(symbol)
+func ToSwapInstId(cexName string, instId string) string {
+	instId = strings.ToUpper(instId)
 	switch CexName(cexName) {
 	case CexNameOkex:
-		if !strings.Contains("SWAP", symbol) {
-			return fmt.Sprintf("%s-SWAP", symbol)
+		if !strings.Contains("SWAP", instId) {
+			return fmt.Sprintf("%s-SWAP", instId)
 		}
 	default:
 		log.Panic("cex %s not support yet", cexName)
 	}
-	return symbol
+	return instId
 }
 
 // Position detail inside the positions

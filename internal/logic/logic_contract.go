@@ -13,7 +13,7 @@ type ContractLogic struct {
 	*config.Config
 	cex          api.CexApi    // 交易所对象
 	ticker       Ticker        // 市价ticker对象
-	symbol       string        // 交易代币对
+	instId       string        // 交易代币对
 	basePrice    sqlca.Decimal // 基础价格
 	lastPrice    sqlca.Decimal // 上次检查的价格
 	position     bool          // 是否已持仓
@@ -28,7 +28,7 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 		Config: cfg,
 		cex:    cex,
 		ticker: ticker,
-		symbol: cfg.Symbol,
+		instId: cfg.Symbol,
 	}
 }
 

@@ -1,5 +1,15 @@
 package types
 
+type CexName string
+
+const (
+	CexNameOkex CexName = "okex"
+)
+
+func (c CexName) String() string {
+	return string(c)
+}
+
 // TradeMode define trade mode
 type TradeMode string
 
@@ -47,12 +57,22 @@ const (
 	OrderTypeTwap        OrderType = "twap"
 )
 
-type CexName string
+func (m TradeMode) String() string {
+	return string(m)
+}
 
-const (
-	CexNameOkex CexName = "okex"
-)
+func (m SideType) String() string {
+	return string(m)
+}
 
-func (c CexName) String() string {
-	return string(c)
+func (m OrderType) String() string {
+	return string(m)
+}
+
+func (m MarginMode) String() string {
+	return string(m)
+}
+
+func (m PositionSideType) String() string {
+	return string(m)
 }

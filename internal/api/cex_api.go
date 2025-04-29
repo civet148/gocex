@@ -41,6 +41,8 @@ type CommonApi interface {
 type AccountApi interface {
 	GetBalance(ctx context.Context, ccy string) (balance *types.Balance, err error)
 	GetBalances(ctx context.Context, ccys ...string) (balances []*types.Balance, err error)
+	GetLeverage(ctx context.Context, instId string, mgnMode types.MarginMode, opts ...options.TradeOption) (leverages []*types.LeverageDetail, err error)
+	SetLeverage(ctx context.Context, instId string, mgnMode types.MarginMode, opts ...options.TradeOption) (leverages []*types.LeverageDetail, err error)
 }
 
 type SpotApi interface {
@@ -50,13 +52,13 @@ type ContractApi interface {
 }
 
 type MarketApi interface {
-	GetTickerPrice(ctx context.Context, symbol string) ([]*types.TickerDetail, error)
+	GetTickerPrice(ctx context.Context, instId string) ([]*types.TickerDetail, error)
 }
 
 type OrderApi interface {
-	GetOrder(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                                  //订单列表
-	PlaceOrder(ctx context.Context, side types.SideType, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //订单下单
-	GetPosition(ctx context.Context, symbols ...string) (orders []*types.OrderListDetail, err error)                                                               //仓位
-	OpenPosition(ctx context.Context, symbol string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)                    //开仓
-	ClosePosition(ctx context.Context, symbol string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                //平仓
+	GetOrder(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                        //订单列表
+	PlaceOrder(ctx context.Context, sideType types.SideType, instId string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)   //订单下单
+	GetPosition(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                     //仓位
+	OpenPosition(ctx context.Context, instId string, sideType types.SideType, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //开仓
+	ClosePosition(ctx context.Context, instId string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                      //平仓
 }

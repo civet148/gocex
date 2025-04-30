@@ -26,8 +26,8 @@ github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5P
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/civet148/copier v0.4.8 h1:VRdLHw5yJXtQrKs/WELobLWOUPdqpc53N43lk3MMmGY=
 github.com/civet148/copier v0.4.8/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
-github.com/civet148/go-okex v0.4.11 h1:l2VuTSQpv+p3p6FEgAtjTqpllN/J7C02jdzjKlNGYgY=
-github.com/civet148/go-okex v0.4.11/go.mod h1:ExUJTSEnLqzGI9xxXoHEKsdw0ggVF27D97vLC18UJxE=
+github.com/civet148/go-okex v0.4.12 h1:SFs3a/pP0bOH9fT4jViRyqnR8rkpALdNzenlDnBMDWA=
+github.com/civet148/go-okex v0.4.12/go.mod h1:ExUJTSEnLqzGI9xxXoHEKsdw0ggVF27D97vLC18UJxE=
 github.com/civet148/godotenv v0.1.0 h1:AbMDY5kxrhcc+fH5gQBWwOhcaq6YxUWepEqOolNPBh4=
 github.com/civet148/godotenv v0.1.0/go.mod h1:Nxe0dPhivvn0/hdpOYosW40wb8bKMj3Wv5HH3/x7hYI=
 github.com/civet148/gotools v1.4.1 h1:9E2rVOUIebQvdG/75iEc1/nqWxqmrUTSWepl0dbaGHo=

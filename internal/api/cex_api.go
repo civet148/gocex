@@ -10,7 +10,7 @@ import (
 )
 
 type CexApi interface {
-	CommonApi
+	PublicApi
 	AccountApi
 	SpotApi
 	ContractApi
@@ -34,8 +34,9 @@ func NewCex(ct types.CexName, c *config.Config) CexApi {
 	return inst(c)
 }
 
-type CommonApi interface {
-	Name() string
+type PublicApi interface {
+	Name() string                                                                                                             //交易所名称
+	GetInstrument(ctx context.Context, instId string, instType types.InstType) (details []*types.InstrumentDetail, err error) //合约/现货/期货等基础数据
 }
 
 type AccountApi interface {
@@ -49,6 +50,9 @@ type SpotApi interface {
 }
 
 type ContractApi interface {
+	GetPosition(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                     //仓位
+	OpenPosition(ctx context.Context, instId string, sideType types.SideType, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //开仓
+	ClosePosition(ctx context.Context, instId string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                      //平仓
 }
 
 type MarketApi interface {
@@ -56,9 +60,6 @@ type MarketApi interface {
 }
 
 type OrderApi interface {
-	GetOrder(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                        //订单列表
-	PlaceOrder(ctx context.Context, sideType types.SideType, instId string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error)   //订单下单
-	GetPosition(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                     //仓位
-	OpenPosition(ctx context.Context, instId string, sideType types.SideType, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //开仓
-	ClosePosition(ctx context.Context, instId string, opts ...options.TradeOption) (orders []*types.ClosePositionDetail, err error)                                      //平仓
+	GetOrder(ctx context.Context, instIds ...string) (orders []*types.OrderListDetail, err error)                                                                      //订单列表
+	PlaceOrder(ctx context.Context, sideType types.SideType, instId string, sz sqlca.Decimal, options ...options.TradeOption) (orders []*types.OrderDetail, err error) //订单下单
 }

@@ -55,3 +55,7 @@ func (m *CexUnimplement) GetLeverage(ctx context.Context, instId string, mgnMode
 func (m *CexUnimplement) SetLeverage(ctx context.Context, instId string, mgnMode types.MarginMode, opts ...options.TradeOption) (leverages []*types.LeverageDetail, err error) {
 	return nil, types.ErrorNotSupport
 }
+
+func (m *CexUnimplement) GetInstrument(ctx context.Context, instId string, instType types.InstType) (details []*types.InstrumentDetail, err error) {
+	return nil, types.ErrorNotSupport
+}

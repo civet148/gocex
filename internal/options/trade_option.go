@@ -15,6 +15,7 @@ type TradeConfig struct {
 	MgnMode      *types.MarginMode       //保证金模式(逐仓/全仓)
 	CliOrdId     *string                 //客户自定义订单ID
 	SideType     *types.SideType         //现货（buy=买 sell=买）合约（buy=多 sell=空）
+	TargetCcy    *string                 //基础货币(没有设置时sz在购买合约时表示张数)
 }
 
 type TradeOption func(o *TradeConfig)
@@ -80,5 +81,11 @@ func WithMarginMode(mgnMode types.MarginMode) TradeOption {
 func WithCliOrdId(cliOrdId string) TradeOption {
 	return func(c *TradeConfig) {
 		c.CliOrdId = &cliOrdId
+	}
+}
+
+func WithTargetCcy(tgtCcy string) TradeOption {
+	return func(c *TradeConfig) {
+		c.TargetCcy = &tgtCcy
 	}
 }

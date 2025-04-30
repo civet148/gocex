@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/civet148/gocex/internal/options"
 	"github.com/civet148/gocex/internal/types"
+	"github.com/civet148/gocex/internal/utils"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
 	"github.com/jinzhu/copier"
@@ -53,6 +54,12 @@ func (m *CexOkex) PlaceOrder(ctx context.Context, sideType types.SideType, instI
 	if tradeOpts.PositionSide != nil {
 		svc.PositionSide(okex.PositionSideType(*tradeOpts.PositionSide))
 	}
+	if tradeOpts.TargetCcy != nil {
+		svc.TargetCurrency(*tradeOpts.TargetCcy)
+	}
+	if tradeOpts.CliOrdId != nil {
+		svc.ClientOrderId(*tradeOpts.CliOrdId)
+	}
 	svc.InstrumentId(instId).Side(okex.SideType(sideType)).Size(sz.String())
 	res, err := svc.Do(ctx)
 	if err != nil {
@@ -86,6 +93,9 @@ func (m *CexOkex) OpenPosition(ctx context.Context, instId string, sideType type
 	}
 	if tradeOpts.MgnMode == nil {
 		opts = append(opts, options.WithMarginMode(types.MarginModeIsolated))
+	}
+	if tradeOpts.CliOrdId == nil {
+		opts = append(opts, options.WithCliOrdId(utils.GenClientOrderId()))
 	}
 	opts = append(opts, options.WithSwap())
 	tradeOpts = options.GetTradeConfig(opts...)

@@ -15,7 +15,7 @@ require (
 
 replace (
 	github.com/jinzhu/copier v0.4.0 => github.com/civet148/copier v0.4.8
-	github.com/tbtc-bot/go-okex v0.4.7 => github.com/civet148/go-okex v0.4.9
+	github.com/tbtc-bot/go-okex v0.4.7 => github.com/civet148/go-okex v0.4.10
 	nhooyr.io/websocket v1.8.7 => github.com/coder/websocket v1.8.7
 )
 

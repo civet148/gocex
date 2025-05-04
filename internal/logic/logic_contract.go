@@ -1,8 +1,10 @@
 package logic
 
 import (
+	"context"
 	"github.com/civet148/gocex/internal/api"
 	"github.com/civet148/gocex/internal/config"
+	"github.com/civet148/gocex/internal/types"
 	"github.com/civet148/gocex/internal/utils"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
@@ -177,4 +179,30 @@ func (l *ContractLogic) formatRisePercent(rise sqlca.Decimal) string {
 		return utils.White(strPercent)
 	}
 	return utils.Green(strPercent)
+}
+
+// 计算合约张数
+func (l *ContractLogic) calcContractSz(price sqlca.Decimal) (sz sqlca.Decimal, err error) {
+	var usdt sqlca.Decimal
+	usdt, err = l.ticker.GetAvailableUSDT()
+	if err != nil {
+		return sz, log.Errorf("查询可用USDT余额失败 error: %s", err.Error())
+	}
+	usdt = usdt.Mul(l.TradeAmountRate) //实际交易的USDT数量
+
+	var insts []*types.InstrumentDetail
+	insts, err = l.cex.GetInstrument(context.Background(), l.Symbol, types.InstType_SWAP)
+	if err != nil {
+		return sz, log.Errorf("查询合约信息失败 error: %s", err.Error())
+	}
+	for _, inst := range insts {
+		if inst.Uly == l.Symbol {
+			ctValue := inst.CtVal.Mul(price).Round(2) //单张合约USD价值
+			sz = usdt.Div(ctValue).Round(1)
+			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v",
+				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz)
+			break
+		}
+	}
+	return sz, nil
 }

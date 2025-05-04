@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/civet148/gocex/internal/api"
 	"github.com/civet148/gocex/internal/config"
+	"github.com/civet148/gocex/internal/options"
 	"github.com/civet148/gocex/internal/types"
 	"github.com/civet148/gocex/internal/utils"
 	"github.com/civet148/log"
@@ -22,10 +23,11 @@ type ContractLogic struct {
 	entryPrice   sqlca.Decimal // 开仓价
 	highestPrice sqlca.Decimal // 最高价
 	continuous   int32         // 价格持续上涨次数
+	cliOrderId   string        // 客户订单ID
 }
 
 func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
-	var ticker = NewTickerLogic(cex, cfg.Symbol, cfg.TickerDur) //市价行情
+	var ticker = NewTickerLogic(cex) //市价行情
 	return &ContractLogic{
 		Config: cfg,
 		cex:    cex,
@@ -84,13 +86,16 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	} else {
 		l.continuous = 0
 	}
-	log.Printf("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
+	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
 		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
 		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.continuous)
 
 	// 满足上涨阈值且未持仓
 	if riseBase.GreaterThanOrEqual(l.RiseThreshold) || l.continuous > l.Continuous {
-		l.openPosition(currentPrice)
+		err := l.openPosition(currentPrice)
+		if err != nil {
+			return
+		}
 		l.continuous = 0
 	}
 
@@ -116,7 +121,7 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	// 计算盈亏比例
 	profitPct := currentPrice.Sub(l.entryPrice).Div(l.entryPrice).Mul(l.Leverage)
 
-	log.Printf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
+	log.Infof("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
 		l.Symbol,
 		utils.FormatDecimal(l.entryPrice, 9),
 		utils.FormatDecimal(currentPrice, 9),
@@ -136,49 +141,88 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	}
 
 	if closePos {
-		l.closePosition(currentPrice)
+		err := l.closePosition(currentPrice)
+		if err != nil {
+			return
+		}
 	}
 }
 
-func (l *ContractLogic) openPosition(price sqlca.Decimal) {
-	log.Printf("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
+func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
+	log.Infof("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	l.position = true
 	l.entryPrice = price
 	l.highestPrice = price
 
-	// TODO: 实现实际合约开仓
-	// 这里应包含杠杆设置和风险控制
-	if !l.Simulate {
-
-	} else {
-		log.Infof("模拟交易模式")
+	sz, err := l.calcContractSz(price)
+	if err != nil {
+		return log.Errorf("计算购买合约张数失败：%s", err.Error())
 	}
+	// 实际合约开仓(这里应包含杠杆设置和风险控制)
+	if !l.Simulate {
+		l.cliOrderId, err = l.createPosition(sz, types.SideTypeBuy)
+		if err != nil {
+			return log.Errorf("合约建仓失败：%s", err.Error())
+		}
+	} else {
+		log.Warnf("开仓：模拟交易模式")
+	}
+	return nil
 }
 
-func (l *ContractLogic) closePosition(price sqlca.Decimal) {
+func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 	profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
-	log.Printf("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+	log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
 	l.position = false
 
-	// TODO: 实现实际合约平仓
+	// 实际合约平仓
 	if !l.Simulate {
-
+		err = l.closePositionByInstId()
+		if err != nil {
+			return err
+		}
 	} else {
-		log.Infof("模拟交易模式")
+		log.Warnf("平仓：模拟交易模式")
 	}
 	// 重置状态
 	l.basePrice = price // 平仓后重置基准价
+	l.cliOrderId = ""
+	return nil
 }
 
-func (l *ContractLogic) formatRisePercent(rise sqlca.Decimal) string {
-	strPercent := rise.Mul(100).Round(2).String()
-	if rise.LessThan(0) {
-		return utils.Red(strPercent)
+// 通过instId关闭仓位
+func (l *ContractLogic) closePositionByInstId() (err error) {
+	var opts []options.TradeOption
+	opts = append(opts, options.WithMarginMode(types.MarginModeIsolated))
+	if l.cliOrderId != "" {
+		opts = append(opts, options.WithCliOrdId(l.cliOrderId))
 	}
-	if rise.Float64() < l.FastRise {
-		return utils.White(strPercent)
+	var orders []*types.ClosePositionDetail
+	orders, err = l.cex.ClosePosition(context.Background(), l.Symbol, opts...)
+	if err != nil {
+		return log.Errorf("[%s] 平仓失败：%s", l.Symbol, err.Error())
 	}
-	return utils.Green(strPercent)
+	_ = orders
+	log.Infof("[%s] 平仓成功,客户订单ID：%s", l.Symbol, l.cliOrderId)
+	return nil
+}
+
+// 开始建仓
+func (l *ContractLogic) createPosition(sz sqlca.Decimal, sideType types.SideType) (cliOrdId string, err error) {
+	var opts []options.TradeOption
+	cliOrdId = utils.GenClientOrderId()
+	opts = append(opts, options.WithOrderType(types.OrderTypeMarket))
+	opts = append(opts, options.WithTradeMode(types.TradeModeIsolated))
+	opts = append(opts, options.WithCliOrdId(cliOrdId))
+
+	var orders []*types.OrderDetail
+	orders, err = l.cex.OpenPosition(context.Background(), l.Symbol, sideType, sz, opts...)
+	if err != nil {
+		return cliOrdId, log.Errorf(err.Error())
+	}
+	_ = orders
+	log.Json("[%s] 合约数量: %v 建仓成功，客户订单ID: %s", l.Symbol, sz, cliOrdId)
+	return cliOrdId, nil
 }
 
 // 计算合约张数
@@ -199,10 +243,21 @@ func (l *ContractLogic) calcContractSz(price sqlca.Decimal) (sz sqlca.Decimal, e
 		if inst.Uly == l.Symbol {
 			ctValue := inst.CtVal.Mul(price).Round(2) //单张合约USD价值
 			sz = usdt.Div(ctValue).Round(1)
-			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v",
-				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz)
+			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v 总费用：%vUSD",
+				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue))
 			break
 		}
 	}
 	return sz, nil
+}
+
+func (l *ContractLogic) formatRisePercent(rise sqlca.Decimal) string {
+	strPercent := rise.Mul(100).Round(2).String()
+	if rise.LessThan(0) {
+		return utils.Red(strPercent)
+	}
+	if rise.Float64() < l.FastRise {
+		return utils.White(strPercent)
+	}
+	return utils.Green(strPercent)
 }

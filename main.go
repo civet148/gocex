@@ -20,7 +20,8 @@ var (
 )
 
 func init() {
-	log.SetLevel("debug")
+	log.SetLevel("info")
+	log.DisableCaller()
 	err := log.Open("gocex.log")
 	if err != nil {
 		panic(err.Error())

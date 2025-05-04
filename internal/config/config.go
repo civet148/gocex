@@ -12,9 +12,7 @@ type Config struct {
 	Symbol          string        `yaml:"Symbol"`                             //下单交易对
 	Leverage        int32         `yaml:"Leverage"`                           //杠杆倍数
 	Continuous      int32         `yaml:"continuous"`                         //价格持续上涨次数
-	TickerDur       time.Duration `yaml:"TickerDur"`                          //市场价更新时间
 	CheckDur        time.Duration `yaml:"CheckDur"`                           //市价检查间隔
-	OrderDur        time.Duration `yaml:"OrderDur"`                           //下单时间间隔
 	FastRise        float64       `yaml:"FastRise"`                           //暴涨或暴跌
 	RiseThreshold   float64       `yaml:"RiseThreshold"`                      //涨幅触发阈值
 	StopLossPct     float64       `yaml:"StopLossPct"`                        //止损百分比

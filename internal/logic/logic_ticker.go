@@ -6,7 +6,6 @@ import (
 	"github.com/civet148/gocex/internal/types"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
-	"time"
 )
 
 type Ticker interface {
@@ -18,7 +17,7 @@ type TickerLogic struct {
 	cex api.CexApi
 }
 
-func NewTickerLogic(cex api.CexApi, instId string, interval time.Duration) *TickerLogic {
+func NewTickerLogic(cex api.CexApi) *TickerLogic {
 	return &TickerLogic{
 		cex: cex,
 	}

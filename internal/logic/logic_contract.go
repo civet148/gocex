@@ -94,10 +94,6 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 }
 
 func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
-	if l.entryPrice.IsZero() {
-		log.Errorf("开仓价为0")
-		return
-	}
 	// 更新最高价
 	if currentPrice.Float64() > l.highestPrice.Float64() {
 		l.highestPrice = currentPrice
@@ -130,10 +126,6 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 		)
 	}
 
-	// 止损检查
-	if risePct.LessThan(0) && profitPct.Abs().GreaterThan(l.StopLossPct) {
-		closePos = true
-	}
 	if closePos {
 		l.closePosition(currentPrice)
 	}
@@ -147,6 +139,11 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) {
 
 	// TODO: 实现实际合约开仓
 	// 这里应包含杠杆设置和风险控制
+	if !l.Simulate {
+
+	} else {
+		log.Infof("模拟交易模式")
+	}
 }
 
 func (l *ContractLogic) closePosition(price sqlca.Decimal) {
@@ -155,6 +152,11 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) {
 	l.position = false
 
 	// TODO: 实现实际合约平仓
+	if !l.Simulate {
+
+	} else {
+		log.Infof("模拟交易模式")
+	}
 	// 重置状态
 	l.basePrice = price // 平仓后重置基准价
 }

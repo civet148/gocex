@@ -2,14 +2,12 @@ package config
 
 import "time"
 
-type Contract struct {
-}
-
 type Config struct {
 	Debug           bool          `yaml:"Debug"`                              //开启调试模式
 	ApiKey          string        `yaml:"ApiKey" env:"API_KEY"`               //交易所API Key
 	ApiSecret       string        `yaml:"ApiSecret" env:"API_SECRET"`         //交易所API密钥
 	ApiPassphrase   string        `yaml:"ApiPassphrase" env:"API_PASSPHRASE"` //交易所API密码
+	Simulate        bool          `yaml:"Simulate"`                           //模拟交易
 	CexName         string        `yaml:"CexName"`                            //交易所名称(okex/binance...)
 	Symbol          string        `yaml:"Symbol"`                             //下单交易对
 	Leverage        int32         `yaml:"Leverage"`                           //杠杆倍数

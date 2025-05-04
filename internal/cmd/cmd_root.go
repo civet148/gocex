@@ -12,12 +12,14 @@ import (
 )
 
 const (
-	CmdName_Public = "pub"   //公共参数
-	CmdName_Inst   = "inst"  //交易基本参数
-	CmdName_Pos    = "pos"   //仓位子命令
-	CmdName_Open   = "open"  //建仓
-	CmdName_Close  = "close" //平仓
-	CmdName_List   = "list"  //仓位列表
+	CmdName_Public  = "pub"     //公共参数
+	CmdName_Inst    = "inst"    //交易基本参数
+	CmdName_Pos     = "pos"     //仓位子命令
+	CmdName_Open    = "open"    //建仓
+	CmdName_Close   = "close"   //平仓
+	CmdName_List    = "list"    //仓位列表
+	CmdName_Account = "acc"     //账户信息
+	CmdName_Balance = "balance" //账户余额
 )
 
 const (
@@ -35,6 +37,7 @@ const (
 	CmdFlag_OrderId     = "order-id"
 	CmdFlag_SideType    = "side-type"
 	CmdFlag_TargetCcy   = "target-ccy"
+	CmdFlag_Ccy         = "ccy"
 )
 
 func loadConfig(ctx *cli.Context) (*config.Config, error) {
@@ -86,6 +89,7 @@ func AppStart(program, ver, buildTime, commit string) {
 			},
 		},
 		Commands: []*cli.Command{
+			cmdAcc,
 			cmdPos,
 			cmdPub,
 		},

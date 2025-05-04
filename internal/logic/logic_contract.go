@@ -34,7 +34,11 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 
 func (l *ContractLogic) Exec() (err error) {
 	// 初始化基准价格
-	l.basePrice = l.ticker.GetCurrentPrice()
+	l.basePrice, err = l.ticker.GetCurrentPrice(l.Symbol)
+	if err != nil {
+		return log.Errorf(err)
+	}
+
 	ticker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
 	defer ticker.Stop()
 
@@ -45,7 +49,10 @@ func (l *ContractLogic) Exec() (err error) {
 }
 
 func (l *ContractLogic) monitorPrice() {
-	currentPrice := l.ticker.GetCurrentPrice()
+	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
+	if err != nil {
+		return
+	}
 	if currentPrice.IsZero() {
 		log.Errorf("current price is 0")
 		return

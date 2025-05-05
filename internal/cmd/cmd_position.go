@@ -199,6 +199,12 @@ var cmdPosList = &cli.Command{
 			Aliases: []string{"x"},
 			Value:   string(types.CexNameOkex),
 		},
+		&cli.StringFlag{
+			Name:    CmdFlag_InstId,
+			Usage:   "example PEPE-USDT",
+			Aliases: []string{"s"},
+			Value:   types.PEPEUSDT,
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		var err error
@@ -209,8 +215,9 @@ var cmdPosList = &cli.Command{
 		}
 		strCexName := types.CexName(ctx.String(CmdFlag_Cex))
 		cex := api.NewCex(strCexName, c)
+		instId := ctx.String(CmdFlag_InstId)
 		var orders []*types.OrderListDetail
-		orders, err = cex.GetPosition(context.Background())
+		orders, err = cex.GetPosition(context.Background(), instId)
 		if err != nil {
 			return log.Errorf(err.Error())
 		}

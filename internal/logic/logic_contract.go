@@ -52,6 +52,11 @@ func (l *ContractLogic) Exec() (err error) {
 	return nil
 }
 
+func (l *ContractLogic) loadContract() (err error) {
+	l.cex.GetPosition(context.Background(), l.Symbol)
+	return nil
+}
+
 func (l *ContractLogic) monitorPrice() {
 	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
 	if err != nil {

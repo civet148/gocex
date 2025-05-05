@@ -1,7 +1,7 @@
 ApiKey:                 # API Key
 ApiSecret:              # API秘钥
 ApiPassphrase:          # API密码
-Debug: false            # 调试模式
+Debug: true             # 调试模式
 Simulate: true          # 模拟交易
 CexName: "okex"         # 交易所名称(okex/binance...)s
 Symbol: "PEPE-USDT"     # 交易对

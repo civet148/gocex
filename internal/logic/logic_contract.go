@@ -94,9 +94,6 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 		if l.position {
 			continue
 		}
-		if pos.AvgPx.IsZero() && pos.Last.IsZero() {
-			continue
-		}
 		l.position = true
 		l.entryPrice = pos.AvgPx
 		if l.entryPrice.LessThan(pos.Last) {
@@ -112,16 +109,13 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 	return nil
 }
 
-func (l *ContractLogic) getPosition() (pos *types.OrderListDetail, err error) {
+func (l *ContractLogic) getActivePosition() (pos *types.OrderListDetail, err error) {
 	var positions []*types.OrderListDetail
 	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
 	if err != nil {
 		return nil, log.Errorf("查询合约失败: %s", err.Error())
 	}
 	for _, p := range positions {
-		if p.AvgPx.IsZero() && p.Last.IsZero() {
-			continue
-		}
 		pos = p
 		break
 	}
@@ -257,7 +251,7 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f%% (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
 	} else {
 		var pos *types.OrderListDetail
-		pos, err = l.getPosition()
+		pos, err = l.getActivePosition()
 		if err != nil {
 			return err
 		}

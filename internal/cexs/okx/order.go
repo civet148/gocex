@@ -80,7 +80,14 @@ func (m *CexOkex) GetPosition(ctx context.Context, instIds ...string) (orders []
 	if err != nil {
 		return nil, log.Errorf(err)
 	}
-	_ = copier.Copy(&orders, res.Data)
+	var details []*types.OrderListDetail
+	_ = copier.Copy(&details, res.Data)
+	for _, detail := range details {
+		if detail.AvgPx.IsZero() {
+			continue //开仓均价为0，过滤掉无效仓位数据
+		}
+		orders = append(orders, detail)
+	}
 	return orders, nil
 }
 

@@ -113,7 +113,7 @@ func (l *ContractLogic) getActivePosition() (pos *types.OrderListDetail, err err
 	var positions []*types.OrderListDetail
 	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
 	if err != nil {
-		return nil, log.Errorf("查询合约失败: %s", err.Error())
+		return nil, log.Errorf("查询合约持仓信息失败: %s", err.Error())
 	}
 	for _, p := range positions {
 		pos = p
@@ -255,6 +255,10 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 		if err != nil {
 			return err
 		}
+		if pos == nil {
+			l.resetPosition(price)
+			return log.Errorf("未查询到持仓信息(可能已手动平仓)，重置持仓状态")
+		}
 		log.Warnf("[%v] 平仓信号 价格: %v 收益率: %.2f%% 总收益: %vUSD",
 			l.Symbol, utils.FormatDecimal(pos.Last, 9), pos.UplRatio.Round(2), pos.Upl.Round(2))
 	}
@@ -266,11 +270,14 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 			return err
 		}
 	}
-	// 重置状态
+	l.resetPosition(price)
+	return nil
+}
+
+func (l *ContractLogic) resetPosition(price sqlca.Decimal) {
 	l.position = false  //重置持仓状态
 	l.basePrice = price //平仓后重置基准价
 	l.cliOrderId = ""   //重置客户订单ID
-	return nil
 }
 
 // 通过instId关闭仓位

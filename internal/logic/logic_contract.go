@@ -114,7 +114,7 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.continuous)
 
 	// 满足上涨阈值且未持仓
-	if riseBase.GreaterThanOrEqual(l.RiseThreshold) || l.continuous > l.Continuous {
+	if /*riseBase.GreaterThanOrEqual(l.RiseThreshold) ||*/ l.continuous > l.Continuous {
 		err := l.openPosition(currentPrice)
 		if err != nil {
 			return

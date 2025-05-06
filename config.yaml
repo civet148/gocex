@@ -2,12 +2,12 @@ ApiKey:                 # API Key
 ApiSecret:              # API秘钥
 ApiPassphrase:          # API密码
 Debug: false            # 调试模式
-Simulate: true          # 模拟交易
-CexName: "okex"         # 交易所名称(okex/binance...)s
+Simulate: false         # 模拟交易
+CexName: "okex"         # 交易所名称(okex/binance...)
 Symbol: "PEPE-USDT"     # 交易对
 CheckDur: "30s"         # 价格检查时间
 Continuous: 4           # 价格持续上涨次数
-Leverage: 5             # 杠杆倍数
+Leverage: 4             # 杠杆倍数
 FastRise: 0.001         # 暴涨比例
 RiseThreshold: 0.015    # 涨幅触发阈值
 StopLossPct: 0.05       # 止损百分比

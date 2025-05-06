@@ -12,14 +12,16 @@ import (
 )
 
 const (
-	CmdName_Public  = "pub"     //公共参数
-	CmdName_Inst    = "inst"    //交易基本参数
-	CmdName_Pos     = "pos"     //仓位子命令
-	CmdName_Open    = "open"    //建仓
-	CmdName_Close   = "close"   //平仓
-	CmdName_List    = "list"    //仓位列表
-	CmdName_Account = "acc"     //账户信息
-	CmdName_Balance = "balance" //账户余额
+	CmdName_Public      = "pub"       //公共参数
+	CmdName_Inst        = "inst"      //交易基本参数
+	CmdName_Pos         = "pos"       //仓位子命令
+	CmdName_Open        = "open"      //建仓
+	CmdName_Close       = "close"     //平仓
+	CmdName_List        = "list"      //仓位列表
+	CmdName_Account     = "acc"       //账户信息
+	CmdName_Balance     = "balance"   //账户余额
+	CmdName_GetLeverage = "get-lever" //获取账户杠杆信息
+	CmdName_SetLeverage = "set-lever" //设置账户杠杆信息
 )
 
 const (

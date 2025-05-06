@@ -37,7 +37,7 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 }
 
 func (l *ContractLogic) Exec() (err error) {
-	err = l.loadContract()
+	err = l.initContract()
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,31 @@ func (l *ContractLogic) Exec() (err error) {
 	return nil
 }
 
-func (l *ContractLogic) loadContract() (err error) {
+func (l *ContractLogic) initContract() (err error) {
+	var ctx = context.Background()
+	//检查杠杆倍数
+	var instruments []*types.InstrumentDetail
+	instruments, err = l.cex.GetInstrument(ctx, l.Symbol, types.InstType_SWAP)
+	if err != nil {
+		return log.Errorf("查询基础信息失败: %s", err.Error())
+	}
+	for _, instr := range instruments {
+		log.Infof("%v最大合约杠杆倍数为%v", l.Symbol, instr.Lever.String())
+		if instr.Lever.LessThan(l.Leverage) {
+			return log.Errorf("杠杆倍数%v不能超过最大杠杆倍数%v", l.Leverage, instr.Lever.String())
+		}
+		//设置杠杆倍数(逐仓)
+		lever := sqlca.NewDecimal(l.Leverage)
+		var opts []options.TradeOption
+		opts = append(opts, options.WithLeverage(lever.String()))
+		opts = append(opts, options.WithSwap())
+		_, err = l.cex.SetLeverage(ctx, l.Symbol, types.MarginModeIsolated, opts...)
+		if err != nil {
+			return log.Errorf("设置杠杆失败: %s", err.Error())
+		}
+		log.Infof("设置杠杆倍数为%v成功", lever.String())
+	}
+	//加载已持仓合约
 	var positions []*types.OrderListDetail
 	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
 	if err != nil {

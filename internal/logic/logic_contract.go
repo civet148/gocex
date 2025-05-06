@@ -87,6 +87,9 @@ func (l *ContractLogic) initContract() (err error) {
 		return log.Errorf("load contract error: %s", err.Error())
 	}
 	for _, pos := range positions {
+		if pos.AvgPx.IsZero() && pos.Last.IsZero() {
+			continue
+		}
 		l.position = true
 		l.entryPrice = pos.AvgPx
 		if l.entryPrice.LessThan(pos.Last) {

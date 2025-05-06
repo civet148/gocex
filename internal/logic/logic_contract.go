@@ -112,6 +112,22 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 	return nil
 }
 
+func (l *ContractLogic) getPosition() (pos *types.OrderListDetail, err error) {
+	var positions []*types.OrderListDetail
+	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
+	if err != nil {
+		return nil, log.Errorf("查询合约失败: %s", err.Error())
+	}
+	for _, p := range positions {
+		if p.AvgPx.IsZero() && p.Last.IsZero() {
+			continue
+		}
+		pos = p
+		break
+	}
+	return pos, nil
+}
+
 func (l *ContractLogic) monitorPrice() {
 	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
 	if err != nil {
@@ -214,7 +230,6 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 }
 
 func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
-	log.Warnf("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	l.position = true
 	l.entryPrice = price
 	l.highestPrice = price
@@ -229,16 +244,26 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 		if err != nil {
 			return log.Errorf("合约建仓失败：%s", err.Error())
 		}
+		log.Warnf("[%v] 开仓信号 价格: %v 杠杆: %v倍 (真实交易模式)", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	} else {
-		log.Warnf("开仓：模拟交易模式")
+		log.Infof("[%v] 开仓信号 价格: %v 杠杆: %v倍 (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	}
 	return nil
 }
 
 func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
-	profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
-	log.Warnf("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
-	l.position = false
+	if l.Simulate {
+		profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
+		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f%% (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+	} else {
+		var pos *types.OrderListDetail
+		pos, err = l.getPosition()
+		if err != nil {
+			return err
+		}
+		log.Warnf("[%v] 平仓信号 价格: %v 收益率: %.2f%% 总收益: %vUSD",
+			l.Symbol, utils.FormatDecimal(pos.Last, 9), pos.UplRatio.Round(2), pos.Upl.Round(2))
+	}
 
 	// 实际合约平仓
 	if !l.Simulate {
@@ -246,12 +271,11 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 		if err != nil {
 			return err
 		}
-	} else {
-		log.Warnf("平仓：模拟交易模式")
 	}
 	// 重置状态
-	l.basePrice = price // 平仓后重置基准价
-	l.cliOrderId = ""
+	l.position = false  //重置持仓状态
+	l.basePrice = price //平仓后重置基准价
+	l.cliOrderId = ""   //重置客户订单ID
 	return nil
 }
 
@@ -272,7 +296,7 @@ func (l *ContractLogic) closePositionByInstId() (err error) {
 	return nil
 }
 
-// 开始建仓
+// 开始建仓(buy=多 sell=空)
 func (l *ContractLogic) createPosition(sz sqlca.Decimal, sideType types.SideType) (cliOrdId string, err error) {
 	var opts []options.TradeOption
 	cliOrdId = utils.GenClientOrderId()

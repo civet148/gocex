@@ -39,7 +39,7 @@ type OrderListDetail struct {
 	MgnRatio               sqlca.Decimal `json:"mgnRatio"` //保证金比例
 	Mmr                    string        `json:"mmr"`
 	NonSettleAvgPx         sqlca.Decimal `json:"nonSettleAvgPx"`
-	NotionalUsd            string        `json:"notionalUsd"` //持仓量（单位：USDT）
+	NotionalUsd            sqlca.Decimal `json:"notionalUsd"` //持仓量（单位：USDT）
 	OptVal                 string        `json:"optVal"`
 	PendingCloseOrdLiabVal string        `json:"pendingCloseOrdLiabVal"`
 	Pnl                    string        `json:"pnl"`
@@ -58,7 +58,7 @@ type OrderListDetail struct {
 	ThetaPA                string        `json:"thetaPA"`
 	TradeId                string        `json:"tradeId"`
 	UTime                  string        `json:"uTime"`
-	Upl                    string        `json:"upl"`            //收益额
+	Upl                    sqlca.Decimal `json:"upl"`            //收益额
 	UplLastPx              sqlca.Decimal `json:"uplLastPx"`      //空
 	UplRatio               sqlca.Decimal `json:"uplRatio"`       //收益率
 	UplRatioLastPx         sqlca.Decimal `json:"uplRatioLastPx"` //空

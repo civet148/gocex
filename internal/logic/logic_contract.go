@@ -65,7 +65,7 @@ func (l *ContractLogic) initContract() (err error) {
 		return log.Errorf("查询基础信息失败: %s", err.Error())
 	}
 	for _, instr := range instruments {
-		log.Infof("%v最大合约杠杆倍数为%v", l.Symbol, instr.Lever.String())
+		//log.Infof("%v最大合约杠杆倍数为%v", l.Symbol, instr.Lever.String())
 		if instr.Lever.LessThan(l.Leverage) {
 			return log.Errorf("杠杆倍数%v不能超过最大杠杆倍数%v", l.Leverage, instr.Lever.String())
 		}
@@ -80,13 +80,20 @@ func (l *ContractLogic) initContract() (err error) {
 		}
 		log.Infof("设置杠杆倍数为%v成功", lever.String())
 	}
+	return nil
+}
+
+func (l *ContractLogic) loadContractPosition() (err error) {
 	//加载已持仓合约
 	var positions []*types.OrderListDetail
 	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
 	if err != nil {
-		return log.Errorf("load contract error: %s", err.Error())
+		return log.Errorf("加载合约失败: %s", err.Error())
 	}
 	for _, pos := range positions {
+		if l.position {
+			continue
+		}
 		if pos.AvgPx.IsZero() && pos.Last.IsZero() {
 			continue
 		}
@@ -97,13 +104,21 @@ func (l *ContractLogic) initContract() (err error) {
 		} else {
 			l.highestPrice = l.entryPrice
 		}
-		log.Json("contract position", pos)
+		log.Warnf("[合约仓位] %v 倍数: %v 持仓量：%vUSD 开仓均价: %v 最新价格: %v 收益：%v％ %vUSD",
+			pos.InstId, pos.Lever, pos.NotionalUsd.Round(2),
+			utils.FormatDecimal(pos.AvgPx, 9), utils.FormatDecimal(pos.Last, 9),
+			l.formatRisePercent(pos.UplRatio.Round(2)), pos.Upl.Round(2))
 	}
 	return nil
 }
 
 func (l *ContractLogic) monitorPrice() {
 	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
+	if err != nil {
+		return
+	}
+	//加载已持仓合约
+	err = l.loadContractPosition()
 	if err != nil {
 		return
 	}
@@ -199,7 +214,7 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 }
 
 func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
-	log.Infof("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
+	log.Warnf("[%v] 开仓信号 价格: %v 杠杆: %d倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	l.position = true
 	l.entryPrice = price
 	l.highestPrice = price
@@ -222,7 +237,7 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 
 func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 	profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
-	log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+	log.Warnf("[%v] 平仓信号 价格: %v 收益率: %.2f%%", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
 	l.position = false
 
 	// 实际合约平仓

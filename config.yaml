@@ -1,17 +1,32 @@
-ApiKey:                 # API Key
-ApiSecret:              # API秘钥
-ApiPassphrase:          # API密码
-Debug: false            # 调试模式
-Simulate: false         # 模拟交易
-CexName: "okex"         # 交易所名称(okex/binance...)
-Symbol: "PEPE-USDT"     # 交易对
-CheckDur: "30s"         # 价格检查时间
-Continuous: 4           # 价格持续上涨次数
-Leverage: 4             # 杠杆倍数
-FastRise: 0.001         # 暴涨比例
-RiseThreshold: 0.015    # 涨幅触发阈值
-StopLossPct: 0.05       # 止损百分比
-PullBackRate: 0.01      # 价格回调比例
-TradeAmountRate: 0.5    # 交易金额比例（余额百分比）
+# API Key
+ApiKey:
+# API秘钥
+ApiSecret:
+# API密码
+ApiPassphrase:
+# 调试模式
+Debug: false
+# 模拟交易
+Simulate: false
+# 交易所名称(okex/binance...)
+CexName: "okex"
+# 交易对
+Symbol: "PEPE-USDT"
+# 价格检查时间
+CheckDur: "20s"
+# 价格暴涨比例
+FastRise: 0.001
+# 价格持续暴涨次数
+Continuous: 5
+# 杠杆倍数
+Leverage: 4
+# 涨幅触发阈值
+RiseThreshold: 0.015
+# 止损百分比
+StopLossPct: 0.03
+# 价格回调比例（满足则平仓）
+PullBackRate: 0.01
+# 交易金额比例（余额百分比）
+TradeAmountRate: 0.5
 
 

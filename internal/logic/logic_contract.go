@@ -37,6 +37,10 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 }
 
 func (l *ContractLogic) Exec() (err error) {
+	err = l.loadContract()
+	if err != nil {
+		return err
+	}
 	// 初始化基准价格
 	l.basePrice, err = l.ticker.GetCurrentPrice(l.Symbol)
 	if err != nil {
@@ -53,7 +57,21 @@ func (l *ContractLogic) Exec() (err error) {
 }
 
 func (l *ContractLogic) loadContract() (err error) {
-	l.cex.GetPosition(context.Background(), l.Symbol)
+	var positions []*types.OrderListDetail
+	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
+	if err != nil {
+		return log.Errorf("load contract error: %s", err.Error())
+	}
+	for _, pos := range positions {
+		l.position = true
+		l.entryPrice = pos.AvgPx
+		if l.entryPrice.LessThan(pos.Last) {
+			l.highestPrice = pos.Last
+		} else {
+			l.highestPrice = l.entryPrice
+		}
+		log.Json("contract position", pos)
+	}
 	return nil
 }
 

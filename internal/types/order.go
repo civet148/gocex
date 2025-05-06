@@ -26,7 +26,7 @@ type OrderListDetail struct {
 	InstId                 string        `json:"instId"`   //产品ID（例如：PEPE-USDT-SWAP)
 	InstType               string        `json:"instType"` //产品类型（例如：SWAP)
 	Interest               string        `json:"interest"`
-	Last                   string        `json:"last"`  //最新价格
+	Last                   sqlca.Decimal `json:"last"`  //最新价格
 	Lever                  sqlca.Decimal `json:"lever"` //杠杆倍数
 	Liab                   string        `json:"liab"`
 	LiabCcy                string        `json:"liabCcy"`

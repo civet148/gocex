@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/civet148/gocex/internal/cmd"
 	"os"
 	"os/signal"
+
+	"github.com/civet148/gocex/internal/cmd"
 
 	"github.com/civet148/log"
 )
 
 const (
-	Version     = "0.2.0"
+	Version     = "0.2.1"
 	ProgramName = "gocex"
 )
 

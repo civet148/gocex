@@ -127,11 +127,14 @@ func (l *ContractLogic) monitorPrice() {
 	if err != nil {
 		return
 	}
-	//加载已持仓合约
-	err = l.loadContractPosition()
-	if err != nil {
-		return
+	if !l.position {
+		//加载已持仓合约
+		err = l.loadContractPosition()
+		if err != nil {
+			return
+		}
 	}
+
 	if currentPrice.IsZero() {
 		log.Errorf("current price is 0")
 		return

@@ -241,7 +241,7 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 		if err != nil {
 			return log.Errorf("合约建仓失败：%s", err.Error())
 		}
-		log.Warnf("[%v] 开仓信号 价格: %v 杠杆: %v倍 (真实交易模式)", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
+		log.Warnf("[%v] 开仓信号 价格: %v 杠杆: %v倍", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	} else {
 		log.Infof("[%v] 开仓信号 价格: %v 杠杆: %v倍 (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), l.Leverage)
 	}
@@ -251,7 +251,7 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 	if l.Simulate {
 		profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
-		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f%% (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f％ (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
 	} else {
 		var pos *types.OrderListDetail
 		pos, err = l.getActivePosition()
@@ -262,7 +262,7 @@ func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 			l.resetPosition(price)
 			return log.Errorf("未查询到持仓信息(可能已手动平仓)，重置持仓状态")
 		}
-		log.Warnf("[%v] 平仓信号 价格: %v 收益率: %.2f%% 总收益: %vUSD",
+		log.Warnf("[%v] 平仓信号 价格: %v 收益率: %v％ 总收益: %vUSD",
 			l.Symbol, utils.FormatDecimal(pos.Last, 9), pos.UplRatio.Round(2), pos.Upl.Round(2))
 	}
 
@@ -314,7 +314,7 @@ func (l *ContractLogic) createPosition(sz sqlca.Decimal, sideType types.SideType
 		return cliOrdId, log.Errorf(err.Error())
 	}
 	_ = orders
-	log.Json("[%s] 合约数量: %v 建仓成功，客户订单ID: %s", l.Symbol, sz, cliOrdId)
+	log.Infof("[%s] 合约数量: %v 建仓成功，客户订单ID: %s", l.Symbol, sz, cliOrdId)
 	return cliOrdId, nil
 }
 
@@ -334,8 +334,8 @@ func (l *ContractLogic) calcContractSz(price sqlca.Decimal) (sz sqlca.Decimal, e
 	}
 	for _, inst := range insts {
 		if inst.Uly == l.Symbol {
-			ctValue := inst.CtVal.Mul(price).Round(2) //单张合约USD价值
-			sz = usdt.Div(ctValue).Round(1)
+			ctValue := inst.CtVal.Mul(price).Round(2)       //单张合约USD价值
+			sz = usdt.Div(ctValue).Mul(l.Leverage).Round(1) //根据杠杆倍数计算实际张数
 			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v 总费用：%vUSD",
 				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue))
 			break

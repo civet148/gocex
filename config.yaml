@@ -17,7 +17,7 @@ CheckDur: "20s"
 # 价格暴涨比例
 FastRise: 0.001
 # 价格持续暴涨次数
-Continuous: 5
+Continuous: 3
 # 杠杆倍数
 Leverage: 8
 # 涨幅触发阈值

@@ -157,6 +157,10 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 	if err != nil {
 		return log.Errorf("加载合约失败: %s", err.Error())
 	}
+	if len(positions) == 0 && l.position {
+		l.resetPosition(l.lastPrice) //已手动结束合约
+		return nil
+	}
 	for _, pos := range positions {
 		if l.position {
 			continue
@@ -194,12 +198,10 @@ func (l *ContractLogic) monitorPrice() {
 	if err != nil {
 		return
 	}
-	if !l.position {
-		//加载已持仓合约
-		err = l.loadContractPosition()
-		if err != nil {
-			return
-		}
+	//加载已持仓合约
+	err = l.loadContractPosition()
+	if err != nil {
+		return
 	}
 
 	if currentPrice.IsZero() {
@@ -255,48 +257,6 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	// 更新上次价格
 	l.lastPrice = currentPrice
 }
-
-//
-//func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
-//	// 更新最高价
-//	if currentPrice.Float64() > l.highestPrice.Float64() {
-//		l.highestPrice = currentPrice
-//	}
-//
-//	var closePos bool
-//
-//	// 计算从最高价的回调幅度
-//	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
-//
-//	// 计算盈亏比例
-//	profitPct := currentPrice.Sub(l.entryPrice).Div(l.entryPrice).Mul(l.Leverage)
-//
-//	log.Infof("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
-//		l.Symbol,
-//		utils.FormatDecimal(l.entryPrice, 9),
-//		utils.FormatDecimal(currentPrice, 9),
-//		l.formatRisePercent(profitPct),
-//		l.formatRisePercent(risePct),
-//	)
-//
-//	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) { //价格从最高价跌破指定百分比
-//		closePos = true
-//		log.Warnf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％] 已触发平仓",
-//			l.Symbol,
-//			utils.FormatDecimal(l.entryPrice, 9),
-//			utils.FormatDecimal(currentPrice, 9),
-//			l.formatRisePercent(profitPct),
-//			l.formatRisePercent(risePct),
-//		)
-//	}
-//
-//	if closePos {
-//		err := l.closePosition(currentPrice)
-//		if err != nil {
-//			return
-//		}
-//	}
-//}
 
 func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 	l.position = true

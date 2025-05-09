@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	Version     = "1.0.0"
+	Version     = "1.1.0"
 	ProgramName = "gocex"
 )
 
 var (
-	BuildTime = "2025-04-25"
+	BuildTime = "2025-05-09"
 	GitCommit = "<N/A>"
 )
 

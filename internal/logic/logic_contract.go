@@ -2,6 +2,8 @@ package logic
 
 import (
 	"context"
+	"time"
+
 	"github.com/civet148/gocex/internal/api"
 	"github.com/civet148/gocex/internal/config"
 	"github.com/civet148/gocex/internal/options"
@@ -9,7 +11,6 @@ import (
 	"github.com/civet148/gocex/internal/utils"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
-	"time"
 )
 
 type ContractLogic struct {
@@ -22,7 +23,7 @@ type ContractLogic struct {
 	position     bool          // 是否已持仓
 	entryPrice   sqlca.Decimal // 开仓价
 	highestPrice sqlca.Decimal // 最高价
-	continuous   int32         // 价格持续上涨次数
+	riseCount    int32         // 价格持续上涨次数
 	cliOrderId   string        // 客户订单ID
 }
 
@@ -50,10 +51,76 @@ func (l *ContractLogic) Exec() (err error) {
 	ticker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
 	defer ticker.Stop()
 
-	for range ticker.C {
-		l.monitorPrice()
+	// 添加15分钟止损检查定时器
+	stopLossTicker := time.NewTicker(15 * time.Minute)
+	defer stopLossTicker.Stop()
+
+	// 添加30分钟回调检查定时器
+	var pullbackTicker *time.Ticker
+	pullbackTicker = time.NewTicker(25 * time.Minute)
+	defer pullbackTicker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			l.monitorPrice()
+		case <-stopLossTicker.C:
+			l.checkStopLoss()
+		case <-pullbackTicker.C:
+			l.checkPullback()
+		}
 	}
 	return nil
+}
+
+// 新增止损检查方法
+func (l *ContractLogic) checkStopLoss() {
+	if !l.position {
+		return
+	}
+
+	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
+	if err != nil {
+		return
+	}
+
+	// 计算当前亏损比例
+	lossPct := l.entryPrice.Sub(currentPrice).Div(l.entryPrice).Mul(l.Leverage)
+
+	if lossPct.GreaterThan(l.StopLossPct) {
+		log.Warnf("[%v] 触发止损 开仓价: %v 当前价: %v 亏损比例: %v％",
+			l.Symbol,
+			utils.FormatDecimal(l.entryPrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.formatRisePercent(lossPct),
+		)
+		_ = l.closePosition(currentPrice)
+	}
+}
+
+// 新增回调检查方法
+func (l *ContractLogic) checkPullback() {
+	if !l.position {
+		return
+	}
+
+	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
+	if err != nil {
+		return
+	}
+
+	// 计算从最高价的回调幅度
+	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
+
+	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) {
+		log.Warnf("[%v] 触发回调平仓 最高价: %v 当前价: %v 回调幅度: %v％ (配置回调幅度：%v％)",
+			l.Symbol,
+			utils.FormatDecimal(l.highestPrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.formatRisePercent(risePct), l.PullBackRate*100,
+		)
+		_ = l.closePosition(currentPrice)
+	}
 }
 
 func (l *ContractLogic) initContract() (err error) {
@@ -142,7 +209,11 @@ func (l *ContractLogic) monitorPrice() {
 	if !l.position {
 		l.checkEntryCondition(currentPrice)
 	} else {
-		l.checkExitCondition(currentPrice)
+		// 更新最高价
+		if currentPrice.Float64() > l.highestPrice.Float64() {
+			l.highestPrice = currentPrice
+		}
+		//l.checkExitCondition(currentPrice)
 	}
 }
 
@@ -160,21 +231,21 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
 
 	if riseLast.GreaterThan(l.FastRise) {
-		l.continuous++
+		l.riseCount++
 	} else {
-		l.continuous = 0
+		l.riseCount = 0
 	}
 	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
 		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
-		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.continuous)
+		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.riseCount)
 
 	// 满足上涨阈值且未持仓
-	if /*riseBase.GreaterThanOrEqual(l.RiseThreshold) ||*/ l.continuous > l.Continuous {
+	if /*riseBase.GreaterThanOrEqual(l.RiseThreshold) ||*/ l.riseCount >= l.Continuous {
 		err := l.openPosition(currentPrice)
 		if err != nil {
 			return
 		}
-		l.continuous = 0
+		l.riseCount = 0
 	}
 
 	// 更新基准价(动态调整)
@@ -185,46 +256,47 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	l.lastPrice = currentPrice
 }
 
-func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
-	// 更新最高价
-	if currentPrice.Float64() > l.highestPrice.Float64() {
-		l.highestPrice = currentPrice
-	}
-
-	var closePos bool
-
-	// 计算从最高价的回调幅度
-	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
-
-	// 计算盈亏比例
-	profitPct := currentPrice.Sub(l.entryPrice).Div(l.entryPrice).Mul(l.Leverage)
-
-	log.Infof("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
-		l.Symbol,
-		utils.FormatDecimal(l.entryPrice, 9),
-		utils.FormatDecimal(currentPrice, 9),
-		l.formatRisePercent(profitPct),
-		l.formatRisePercent(risePct),
-	)
-
-	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) { //价格从最高价跌破指定百分比
-		closePos = true
-		log.Warnf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％] 已触发平仓",
-			l.Symbol,
-			utils.FormatDecimal(l.entryPrice, 9),
-			utils.FormatDecimal(currentPrice, 9),
-			l.formatRisePercent(profitPct),
-			l.formatRisePercent(risePct),
-		)
-	}
-
-	if closePos {
-		err := l.closePosition(currentPrice)
-		if err != nil {
-			return
-		}
-	}
-}
+//
+//func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
+//	// 更新最高价
+//	if currentPrice.Float64() > l.highestPrice.Float64() {
+//		l.highestPrice = currentPrice
+//	}
+//
+//	var closePos bool
+//
+//	// 计算从最高价的回调幅度
+//	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
+//
+//	// 计算盈亏比例
+//	profitPct := currentPrice.Sub(l.entryPrice).Div(l.entryPrice).Mul(l.Leverage)
+//
+//	log.Infof("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％]",
+//		l.Symbol,
+//		utils.FormatDecimal(l.entryPrice, 9),
+//		utils.FormatDecimal(currentPrice, 9),
+//		l.formatRisePercent(profitPct),
+//		l.formatRisePercent(risePct),
+//	)
+//
+//	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) { //价格从最高价跌破指定百分比
+//		closePos = true
+//		log.Warnf("[%v] 开仓价: %v 当前价: %v 浮盈: [%v％] 回调幅度：[%v％] 已触发平仓",
+//			l.Symbol,
+//			utils.FormatDecimal(l.entryPrice, 9),
+//			utils.FormatDecimal(currentPrice, 9),
+//			l.formatRisePercent(profitPct),
+//			l.formatRisePercent(risePct),
+//		)
+//	}
+//
+//	if closePos {
+//		err := l.closePosition(currentPrice)
+//		if err != nil {
+//			return
+//		}
+//	}
+//}
 
 func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 	l.position = true

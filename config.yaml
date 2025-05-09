@@ -19,14 +19,14 @@ FastRise: 0.001
 # 价格持续暴涨次数
 Continuous: 3
 # 杠杆倍数
-Leverage: 8
+Leverage: 5
 # 涨幅触发阈值
 RiseThreshold: 0.015
 # 止损百分比
-StopLossPct: 0.03
+StopLossPct: 0.2
 # 价格回调比例（满足则平仓）
-PullBackRate: 0.01
+PullBackRate: 0.015
 # 交易金额比例（余额百分比）
-TradeAmountRate: 0.8
+TradeAmountRate: 0.6
 
 

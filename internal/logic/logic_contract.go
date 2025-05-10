@@ -283,7 +283,7 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	}
 
 	// 满足持续暴跌次数强制平仓
-	if l.pullCount >= l.Continuous {
+	if l.pullCount >= l.Continuous-1 {
 		log.Warnf("[%v] 基础价: %v 市场价: %v 暴跌持续次数 [%v] 强制平仓",
 			l.Symbol,
 			utils.FormatDecimal(l.basePrice, 9),

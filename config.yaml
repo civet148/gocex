@@ -15,9 +15,9 @@ Symbol: "PEPE-USDT"
 # 价格检查时间
 CheckDur: "20s"
 # 价格暴涨比例
-FastRise: 0.001
+FastRise: 0.0015
 # 价格持续暴涨次数
-Continuous: 4
+Continuous: 5
 # 杠杆倍数
 Leverage: 5
 # 暴涨暴跌幅度
@@ -25,8 +25,8 @@ RiseThreshold: 0.015
 # 止损百分比
 StopLossPct: 0.2
 # 价格回调比例（满足则平仓）
-PullBackRate: 0.02
+PullBackRate: 0.015
 # 交易金额比例（余额百分比）
-TradeAmountRate: 0.6
+TradeAmountRate: 0.5
 
 

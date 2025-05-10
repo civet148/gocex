@@ -15,17 +15,18 @@ import (
 
 type ContractLogic struct {
 	*config.Config
-	cex          api.CexApi    // 交易所对象
-	ticker       Ticker        // 市价ticker对象
-	instId       string        // 交易代币对
-	basePrice    sqlca.Decimal // 基础价格
-	lastPrice    sqlca.Decimal // 上次检查的价格
-	position     bool          // 是否已持仓
-	entryPrice   sqlca.Decimal // 开仓价
-	highestPrice sqlca.Decimal // 最高价
-	riseCount    int32         // 价格持续上涨次数
-	pullCount    int32         // 价格持续暴跌次数
-	cliOrderId   string        // 客户订单ID
+	cex          api.CexApi             // 交易所对象
+	ticker       Ticker                 // 市价ticker对象
+	instId       string                 // 交易代币对
+	basePrice    sqlca.Decimal          // 基础价格
+	lastPrice    sqlca.Decimal          // 上次检查的价格
+	position     bool                   // 是否已持仓
+	entryPrice   sqlca.Decimal          // 开仓价
+	highestPrice sqlca.Decimal          // 最高价
+	riseCount    int32                  // 价格持续上涨次数
+	pullCount    int32                  // 价格持续暴跌次数
+	cliOrderId   string                 // 客户订单ID
+	posOrder     *types.OrderListDetail // 持仓订单
 }
 
 func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
@@ -39,7 +40,7 @@ func NewContractLogic(cfg *config.Config, cex api.CexApi) *ContractLogic {
 }
 
 func (l *ContractLogic) Exec() (err error) {
-	err = l.initContract()
+	err = l.initContractInstrument()
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,8 @@ func (l *ContractLogic) checkPullback() {
 	}
 }
 
-func (l *ContractLogic) initContract() (err error) {
+// 初始化合约参数
+func (l *ContractLogic) initContractInstrument() (err error) {
 	var ctx = context.Background()
 	//检查杠杆倍数
 	var instruments []*types.InstrumentDetail
@@ -146,7 +148,6 @@ func (l *ContractLogic) initContract() (err error) {
 		if err != nil {
 			return log.Errorf("设置杠杆失败: %s", err.Error())
 		}
-		log.Infof("设置杠杆倍数为%v成功", lever.String())
 	}
 	return nil
 }
@@ -163,20 +164,20 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 		return nil
 	}
 	for _, pos := range positions {
-		if l.position {
-			continue
-		}
 		l.position = true
 		l.entryPrice = pos.AvgPx
+		l.posOrder = pos
 		if l.entryPrice.LessThan(pos.Last) {
 			l.highestPrice = pos.Last
 		} else {
 			l.highestPrice = l.entryPrice
 		}
-		log.Warnf("[合约仓位] %v 倍数: %v 持仓量：%vUSD 开仓均价: %v 最新价格: %v 收益：%v％ %vUSD",
-			pos.InstId, pos.Lever, pos.NotionalUsd.Round(2),
-			utils.FormatDecimal(pos.AvgPx, 9), utils.FormatDecimal(pos.Last, 9),
-			l.formatRisePercent(pos.UplRatio.Round(2)), pos.Upl.Round(2))
+		log.Infof("[%v合约] 倍数: %v 开仓均价: %v 标记价格: %v 收益：%v %vUSD",
+			pos.InstId, pos.Lever,
+			utils.FormatDecimal(pos.AvgPx, 9),
+			utils.FormatDecimal(pos.Last, 9),
+			l.formatRisePercent(pos.UplRatio),
+			pos.Upl.Round(2))
 	}
 	return nil
 }
@@ -237,7 +238,10 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	}
 	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
 		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
-		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.riseCount)
+		utils.FormatDecimal(currentPrice, 9),
+		l.formatRisePercent(riseBase),
+		l.formatRisePercent(riseLast),
+		l.riseCount)
 
 	// 满足上涨阈值且未持仓
 	if /*riseBase.GreaterThanOrEqual(l.RiseThreshold) ||*/ l.riseCount >= l.Continuous {
@@ -266,9 +270,9 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	if currentPrice.Float64() > l.highestPrice.Float64() {
 		l.highestPrice = currentPrice
 	}
-	// 计算从基准价的涨幅
-	riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
-
+	//// 计算从基准价的涨幅
+	//riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
+	//
 	// 计算上次检查价格的涨幅
 	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
 
@@ -277,12 +281,14 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	} else {
 		l.pullCount = 0
 	}
-	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
-		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
-		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.riseCount)
 
 	// 满足持续暴跌次数强制平仓
-	if l.riseCount >= l.Continuous {
+	if l.pullCount >= l.Continuous {
+		log.Warnf("[%v] 基础价: %v 市场价: %v 暴跌持续次数 [%v] 强制平仓",
+			l.Symbol,
+			utils.FormatDecimal(l.basePrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.pullCount)
 		err := l.closePosition(currentPrice)
 		if err != nil {
 			return
@@ -368,7 +374,6 @@ func (l *ContractLogic) closePositionByInstId() (err error) {
 		return log.Errorf("[%s] 平仓失败：%s", l.Symbol, err.Error())
 	}
 	_ = orders
-	log.Infof("[%s] 平仓成功,客户订单ID：%s", l.Symbol, l.cliOrderId)
 	return nil
 }
 

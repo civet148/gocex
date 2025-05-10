@@ -2,7 +2,6 @@ package options
 
 import (
 	"github.com/civet148/gocex/internal/types"
-	"github.com/civet148/log"
 )
 
 type TradeConfig struct {
@@ -25,7 +24,6 @@ func GetTradeConfig(options ...TradeOption) *TradeConfig {
 	for _, o := range options {
 		o(&tradeOpts)
 	}
-	log.Json("trade options", tradeOpts)
 	return &tradeOpts
 }
 

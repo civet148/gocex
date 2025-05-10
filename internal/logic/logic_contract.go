@@ -24,6 +24,7 @@ type ContractLogic struct {
 	entryPrice   sqlca.Decimal // 开仓价
 	highestPrice sqlca.Decimal // 最高价
 	riseCount    int32         // 价格持续上涨次数
+	pullCount    int32         // 价格持续暴跌次数
 	cliOrderId   string        // 客户订单ID
 }
 
@@ -51,13 +52,13 @@ func (l *ContractLogic) Exec() (err error) {
 	ticker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
 	defer ticker.Stop()
 
-	// 添加15分钟止损检查定时器
-	stopLossTicker := time.NewTicker(15 * time.Minute)
+	// 添加止损检查定时器
+	stopLossTicker := time.NewTicker(5 * time.Minute)
 	defer stopLossTicker.Stop()
 
-	// 添加30分钟回调检查定时器
+	// 添加回调检查定时器
 	var pullbackTicker *time.Ticker
-	pullbackTicker = time.NewTicker(25 * time.Minute)
+	pullbackTicker = time.NewTicker(30 * time.Minute)
 	defer pullbackTicker.Stop()
 
 	for {
@@ -212,10 +213,7 @@ func (l *ContractLogic) monitorPrice() {
 		l.checkEntryCondition(currentPrice)
 	} else {
 		// 更新最高价
-		if currentPrice.Float64() > l.highestPrice.Float64() {
-			l.highestPrice = currentPrice
-		}
-		//l.checkExitCondition(currentPrice)
+		l.checkExitCondition(currentPrice)
 	}
 }
 
@@ -232,7 +230,7 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	// 计算上次检查价格的涨幅
 	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
 
-	if riseLast.GreaterThan(l.FastRise) {
+	if riseLast.GreaterThanOrEqual(l.FastRise) {
 		l.riseCount++
 	} else {
 		l.riseCount = 0
@@ -248,6 +246,48 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 			return
 		}
 		l.riseCount = 0
+	}
+
+	// 更新基准价(动态调整)
+	if currentPrice.Float64() < l.basePrice.Float64() {
+		l.basePrice = currentPrice
+	}
+	// 更新上次价格
+	l.lastPrice = currentPrice
+}
+
+func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
+	if l.basePrice.IsZero() {
+		l.basePrice = currentPrice
+	}
+	if l.lastPrice.IsZero() {
+		l.lastPrice = currentPrice
+	}
+	if currentPrice.Float64() > l.highestPrice.Float64() {
+		l.highestPrice = currentPrice
+	}
+	// 计算从基准价的涨幅
+	riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
+
+	// 计算上次检查价格的涨幅
+	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
+
+	if riseLast.LessThan(0) && riseLast.Abs().GreaterThanOrEqual(l.FastRise) { //计算暴跌持续次数
+		l.pullCount++
+	} else {
+		l.pullCount = 0
+	}
+	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
+		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
+		utils.FormatDecimal(currentPrice, 9), l.formatRisePercent(riseBase), l.formatRisePercent(riseLast), l.riseCount)
+
+	// 满足持续暴跌次数强制平仓
+	if l.riseCount >= l.Continuous {
+		err := l.closePosition(currentPrice)
+		if err != nil {
+			return
+		}
+		l.pullCount = 0
 	}
 
 	// 更新基准价(动态调整)

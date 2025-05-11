@@ -41,15 +41,14 @@ const (
 	CmdFlag_TargetCcy   = "target-ccy"
 	CmdFlag_Ccy         = "ccy"
 	CmdFlag_Simulate    = "sim"
+	CmdFlag_Continuous  = "continuous"
 )
 
 func loadConfig(ctx *cli.Context) (*config.Config, error) {
 	var c config.Config
 	var sim = ctx.Bool(CmdFlag_Simulate)
-	if sim {
-		c.Simulate = true
-		log.Warnf("Simulate mode [ON]")
-	}
+	var continuous = ctx.Int(CmdFlag_Continuous)
+
 	//设置配置文件
 	viper.SetConfigFile(ctx.String(CmdFlag_Config))
 
@@ -73,6 +72,9 @@ func loadConfig(ctx *cli.Context) (*config.Config, error) {
 	}
 	if sim {
 		c.Simulate = true
+	}
+	if continuous > 0 {
+		c.Continuous = int32(continuous)
 	}
 	log.Json(&c)
 	return &c, nil
@@ -100,6 +102,11 @@ func AppStart(program, ver, buildTime, commit string) {
 				Name:    CmdFlag_Simulate,
 				Usage:   "simulate mode",
 				Aliases: []string{"s"},
+			},
+			&cli.IntFlag{
+				Name:    CmdFlag_Continuous,
+				Usage:   "price rise continuous times",
+				Aliases: []string{"t"},
 			},
 		},
 		Commands: []*cli.Command{

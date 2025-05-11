@@ -25,60 +25,31 @@ const (
 )
 
 const (
-	CmdFlag_Config      = "config"
-	CmdFlag_Debug       = "debug"
-	CmdFlag_Cex         = "cex"
-	CmdFlag_InstId      = "inst-id"
-	CmdFlag_InstType    = "inst-type"
-	CmdFlag_Px          = "px"
-	CmdFlag_Sz          = "sz"
-	CmdFlag_Lever       = "lever"
-	CmdFlag_OrderType   = "order-type"
-	CmdFlag_PosSideType = "pos-side"
-	CmdFlag_TradeMode   = "trade-mode"
-	CmdFlag_OrderId     = "order-id"
-	CmdFlag_SideType    = "side-type"
-	CmdFlag_TargetCcy   = "target-ccy"
-	CmdFlag_Ccy         = "ccy"
-	CmdFlag_Simulate    = "sim"
-	CmdFlag_Continuous  = "continuous"
+	CmdFlag_Config        = "config"
+	CmdFlag_Debug         = "debug"
+	CmdFlag_Cex           = "cex"
+	CmdFlag_InstId        = "inst-id"
+	CmdFlag_InstType      = "inst-type"
+	CmdFlag_Px            = "px"
+	CmdFlag_Sz            = "sz"
+	CmdFlag_Lever         = "lever"
+	CmdFlag_OrderType     = "order-type"
+	CmdFlag_PosSideType   = "pos-side"
+	CmdFlag_TradeMode     = "trade-mode"
+	CmdFlag_OrderId       = "order-id"
+	CmdFlag_SideType      = "side-type"
+	CmdFlag_TargetCcy     = "target-ccy"
+	CmdFlag_Ccy           = "ccy"
+	CmdFlag_Simulate      = "sim"
+	CmdFlag_Continuous    = "continuous"
+	CmdFlag_RiseThreshold = "rise-threshold"
+	CmdFlag_PullbackRate  = "pullback-rate"
+	CmdFlag_StopWinPct    = "stop-win-pct"
+	CmdFLag_StopLossPct   = "stop-loss-pct"
+	CmdFlag_FastRise      = "fast-rise"
+	CmdFlag_Leverage      = "leverage"
+	CmdFlag_CheckDuration = "check-duration"
 )
-
-func loadConfig(ctx *cli.Context) (*config.Config, error) {
-	var c config.Config
-	var sim = ctx.Bool(CmdFlag_Simulate)
-	var continuous = ctx.Int(CmdFlag_Continuous)
-
-	//设置配置文件
-	viper.SetConfigFile(ctx.String(CmdFlag_Config))
-
-	// 读取配置文件
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, log.Errorf(err)
-	}
-
-	// 反序列化到结构体
-	err = viper.Unmarshal(&c)
-	if err != nil {
-		return nil, log.Errorf(err)
-	}
-	if c.ApiKey == "" {
-		err = godotenv.Load(&c)
-		if err != nil {
-			log.Errorf("load .env error %s", err)
-			return nil, err
-		}
-	}
-	if sim {
-		c.Simulate = true
-	}
-	if continuous > 0 {
-		c.Continuous = int32(continuous)
-	}
-	log.Json(&c)
-	return &c, nil
-}
 
 func AppStart(program, ver, buildTime, commit string) {
 
@@ -108,6 +79,41 @@ func AppStart(program, ver, buildTime, commit string) {
 				Usage:   "price rise continuous times",
 				Aliases: []string{"t"},
 			},
+			&cli.Float64Flag{
+				Name:    CmdFlag_RiseThreshold,
+				Usage:   "price rise threshold rate",
+				Aliases: []string{"r"},
+			},
+			&cli.Float64Flag{
+				Name:    CmdFlag_PullbackRate,
+				Usage:   "price pull back rate",
+				Aliases: []string{"p"},
+			},
+			&cli.Float64Flag{
+				Name:    CmdFlag_StopWinPct,
+				Usage:   "stop win percent",
+				Aliases: []string{"w"},
+			},
+			&cli.Float64Flag{
+				Name:    CmdFLag_StopLossPct,
+				Usage:   "stop loss percent",
+				Aliases: []string{"l"},
+			},
+			&cli.Float64Flag{
+				Name:    CmdFlag_FastRise,
+				Usage:   "price fast rise rate",
+				Aliases: []string{"f"},
+			},
+			&cli.IntFlag{
+				Name:    CmdFlag_Leverage,
+				Usage:   "contract leverage",
+				Aliases: []string{"L"},
+			},
+			&cli.DurationFlag{
+				Name:    CmdFlag_CheckDuration,
+				Usage:   "price check duration",
+				Aliases: []string{"D"},
+			},
 		},
 		Commands: []*cli.Command{
 			cmdAcc,
@@ -136,4 +142,68 @@ func AppStart(program, ver, buildTime, commit string) {
 		os.Exit(1)
 		return
 	}
+}
+
+func loadConfig(ctx *cli.Context) (*config.Config, error) {
+	var c config.Config
+	var sim = ctx.Bool(CmdFlag_Simulate)
+	var continuous = ctx.Int(CmdFlag_Continuous)
+	var riseThreshold = ctx.Float64(CmdFlag_RiseThreshold)
+	var pullbackRate = ctx.Float64(CmdFlag_PullbackRate)
+	var stopWinPct = ctx.Float64(CmdFlag_StopWinPct)
+	var stopLossPct = ctx.Float64(CmdFLag_StopLossPct)
+	var fastRise = ctx.Float64(CmdFlag_FastRise)
+	var leverage = ctx.Int(CmdFlag_Leverage)
+	var checkDuration = ctx.Duration(CmdFlag_CheckDuration)
+
+	//设置配置文件
+	viper.SetConfigFile(ctx.String(CmdFlag_Config))
+
+	// 读取配置文件
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, log.Errorf(err)
+	}
+
+	// 反序列化到结构体
+	err = viper.Unmarshal(&c)
+	if err != nil {
+		return nil, log.Errorf(err)
+	}
+	if c.ApiKey == "" {
+		err = godotenv.Load(&c)
+		if err != nil {
+			log.Errorf("load .env error %s", err)
+			return nil, err
+		}
+	}
+	if sim {
+		c.Simulate = true
+	}
+	if continuous > 0 {
+		c.Continuous = int32(continuous)
+	}
+	if riseThreshold > 0 {
+		c.RiseThreshold = riseThreshold
+	}
+	if pullbackRate > 0 {
+		c.PullBackRate = pullbackRate
+	}
+	if stopWinPct > 0 {
+		c.StopWinPct = stopWinPct
+	}
+	if stopLossPct > 0 {
+		c.StopLossPct = stopLossPct
+	}
+	if fastRise > 0 {
+		c.FastRise = fastRise
+	}
+	if leverage > 0 {
+		c.Leverage = int32(leverage)
+	}
+	if checkDuration > 0 {
+		c.CheckDur = checkDuration
+	}
+	log.Json(&c)
+	return &c, nil
 }

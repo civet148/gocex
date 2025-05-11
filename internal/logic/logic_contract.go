@@ -258,7 +258,7 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	log.Infof("[%v] 基础价: %v 市场价: %v 暴涨比例 [%v] 单次涨幅 [%v] 持续次数 [%v]",
 		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
 		utils.FormatDecimal(currentPrice, 9),
-		sqlca.NewDecimal(l.FastRise),
+		l.colorPercent(sqlca.NewDecimal(l.FastRise), true),
 		l.colorPercent(riseLast),
 		l.riseCount)
 
@@ -436,15 +436,18 @@ func (l *ContractLogic) calcContractSz(price sqlca.Decimal) (sz sqlca.Decimal, e
 			ctValue := inst.CtVal.Mul(price).Round(2)       //单张合约USD价值
 			sz = usdt.Div(ctValue).Mul(l.Leverage).Round(1) //根据杠杆倍数计算实际张数
 			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v 总费用：%vUSD",
-				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue).Div(l.Leverage))
+				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue).Div(l.Leverage).Round(2))
 			break
 		}
 	}
 	return sz, nil
 }
 
-func (l *ContractLogic) colorPercent(rise sqlca.Decimal) string {
+func (l *ContractLogic) colorPercent(rise sqlca.Decimal, noColor ...bool) string {
 	strPercent := fmt.Sprintf("%v％", rise.Mul(100).Round(2).String())
+	if len(noColor) > 0 {
+		return strPercent
+	}
 	if rise.LessThan(0) {
 		return utils.Red(strPercent)
 	}

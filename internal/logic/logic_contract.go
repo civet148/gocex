@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/civet148/gocex/internal/api"
@@ -92,22 +93,22 @@ func (l *ContractLogic) checkStopWinOrLoss() {
 	pct := l.posOrder.UplRatio
 	if pct.LessThan(0) { //亏损
 		if pct.Abs().GreaterThan(l.StopLossPct) {
-			log.Warnf("[%v] 触发止损 开仓价: %v 当前价: %v 亏损比例: %v％  亏损金额：%vUSD",
+			log.Warnf("[%v] 触发止损 开仓价: %v 当前价: %v 亏损比例: %v  亏损金额：%vUSD",
 				l.Symbol,
 				utils.FormatDecimal(l.entryPrice, 9),
 				utils.FormatDecimal(currentPrice, 9),
-				l.formatRisePercent(pct),
+				l.colorPercent(pct),
 				l.posOrder.Upl.Round(2),
 			)
 			_ = l.closePosition(currentPrice)
 		}
 	} else { //盈利
 		if pct.GreaterThan(l.StopWinPct) {
-			log.Warnf("[%v] 触发止赢 开仓价: %v 当前价: %v 盈利比例: %v％ 盈利金额：%vUSD",
+			log.Warnf("[%v] 触发止赢 开仓价: %v 当前价: %v 盈利比例: %v 盈利金额：%vUSD",
 				l.Symbol,
 				utils.FormatDecimal(l.entryPrice, 9),
 				utils.FormatDecimal(currentPrice, 9),
-				l.formatRisePercent(pct),
+				l.colorPercent(pct),
 				l.posOrder.Upl.Round(2),
 			)
 		}
@@ -129,11 +130,11 @@ func (l *ContractLogic) checkPullback() {
 	risePct := currentPrice.Sub(l.highestPrice).Div(l.highestPrice)
 
 	if risePct.LessThan(0) && risePct.Abs().GreaterThan(l.PullBackRate) {
-		log.Warnf("[%v] 触发回调平仓 最高价: %v 当前价: %v 回调幅度: %v％ (配置回调幅度：%v％)",
+		log.Warnf("[%v] 触发回调平仓 最高价: %v 当前价: %v 回调幅度: %v (配置回调幅度：%v％)",
 			l.Symbol,
 			utils.FormatDecimal(l.highestPrice, 9),
 			utils.FormatDecimal(currentPrice, 9),
-			l.formatRisePercent(risePct), l.PullBackRate*100,
+			l.colorPercent(risePct), l.PullBackRate*100,
 		)
 		_ = l.closePosition(currentPrice)
 	}
@@ -141,6 +142,9 @@ func (l *ContractLogic) checkPullback() {
 
 // 初始化合约参数
 func (l *ContractLogic) initContractInstrument() (err error) {
+	if l.Simulate {
+		return nil //模拟模式不读取实际合约基础信息
+	}
 	var ctx = context.Background()
 	//检查杠杆倍数
 	var instruments []*types.InstrumentDetail
@@ -167,6 +171,9 @@ func (l *ContractLogic) initContractInstrument() (err error) {
 }
 
 func (l *ContractLogic) loadContractPosition() (err error) {
+	if l.Simulate {
+		return nil //模拟模式不读取实际合约
+	}
 	//加载已持仓合约
 	var positions []*types.OrderListDetail
 	positions, err = l.cex.GetPosition(context.Background(), l.Symbol)
@@ -190,7 +197,7 @@ func (l *ContractLogic) loadContractPosition() (err error) {
 			pos.InstId, pos.Lever,
 			utils.FormatDecimal(pos.AvgPx, 9),
 			utils.FormatDecimal(pos.Last, 9),
-			l.formatRisePercent(pos.UplRatio),
+			l.colorPercent(pos.UplRatio),
 			pos.Upl.Round(2))
 	}
 	return nil
@@ -239,8 +246,6 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	if l.lastPrice.IsZero() {
 		l.lastPrice = currentPrice
 	}
-	// 计算从基准价的涨幅
-	riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
 
 	// 计算上次检查价格的涨幅
 	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
@@ -250,11 +255,11 @@ func (l *ContractLogic) checkEntryCondition(currentPrice sqlca.Decimal) {
 	} else {
 		l.riseCount = 0
 	}
-	log.Infof("[%v] 基础价: %v 市场价: %v 总涨幅[%v％] 单次涨幅 [%v％] 持续次数 [%v]",
+	log.Infof("[%v] 基础价: %v 市场价: %v 暴涨比例 [%v] 单次涨幅 [%v] 持续次数 [%v]",
 		l.Symbol, utils.FormatDecimal(l.basePrice, 9),
 		utils.FormatDecimal(currentPrice, 9),
-		l.formatRisePercent(riseBase),
-		l.formatRisePercent(riseLast),
+		sqlca.NewDecimal(l.FastRise),
+		l.colorPercent(riseLast),
 		l.riseCount)
 
 	// 满足上涨阈值且未持仓
@@ -295,9 +300,12 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	} else {
 		l.pullCount = 0
 	}
-
+	if l.Continuous <= 0 {
+		log.Panic("Continuous not valid")
+		return
+	}
 	// 满足持续暴跌次数强制平仓
-	if l.pullCount >= l.Continuous-1 {
+	if count := l.Continuous - 1; count > 0 && l.pullCount >= count {
 		log.Warnf("[%v] 基础价: %v 市场价: %v 暴跌持续次数 [%v] 强制平仓",
 			l.Symbol,
 			utils.FormatDecimal(l.basePrice, 9),
@@ -428,15 +436,15 @@ func (l *ContractLogic) calcContractSz(price sqlca.Decimal) (sz sqlca.Decimal, e
 			ctValue := inst.CtVal.Mul(price).Round(2)       //单张合约USD价值
 			sz = usdt.Div(ctValue).Mul(l.Leverage).Round(1) //根据杠杆倍数计算实际张数
 			log.Infof("[%s] 市价: %v 合约单张价值：%vUSD 实际购买张数：%v 总费用：%vUSD",
-				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue))
+				l.Symbol, utils.FormatDecimal(price, 9), ctValue, sz, sz.Mul(ctValue).Div(l.Leverage))
 			break
 		}
 	}
 	return sz, nil
 }
 
-func (l *ContractLogic) formatRisePercent(rise sqlca.Decimal) string {
-	strPercent := rise.Mul(100).Round(2).String()
+func (l *ContractLogic) colorPercent(rise sqlca.Decimal) string {
+	strPercent := fmt.Sprintf("%v％", rise.Mul(100).Round(2).String())
 	if rise.LessThan(0) {
 		return utils.Red(strPercent)
 	}

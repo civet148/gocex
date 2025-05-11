@@ -16,6 +16,7 @@ type Config struct {
 	FastRise        float64       `yaml:"FastRise"`                           //暴涨或暴跌
 	RiseThreshold   float64       `yaml:"RiseThreshold"`                      //涨幅触发阈值
 	StopLossPct     float64       `yaml:"StopLossPct"`                        //止损百分比
+	StopWinPct      float64       `yaml:"StopWinPct"`                         //止盈百分比
 	TakeProfitPct   float64       `yaml:"TakeProfitPct"`                      //止盈百分比
 	PullBackRate    float64       `yaml:"PullBackRate"`                       //价格回调比例
 	TradeAmountRate float64       `yaml:"TradeAmountRate"`                    //交易金额比例（余额百分比）

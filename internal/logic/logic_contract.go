@@ -50,53 +50,67 @@ func (l *ContractLogic) Exec() (err error) {
 		return log.Errorf(err)
 	}
 
-	ticker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
-	defer ticker.Stop()
+	priceTicker := time.NewTicker(l.CheckDur) // n分钟检查一次价格涨跌幅
+	defer priceTicker.Stop()
 
-	// 添加止损检查定时器
-	stopLossTicker := time.NewTicker(5 * time.Minute)
-	defer stopLossTicker.Stop()
+	// 添加止盈止损检查定时器
+	winLossTicker := time.NewTicker(5 * time.Minute)
+	defer winLossTicker.Stop()
 
 	// 添加回调检查定时器
 	var pullbackTicker *time.Ticker
-	pullbackTicker = time.NewTicker(30 * time.Minute)
+	pullbackTicker = time.NewTicker(15 * time.Minute)
 	defer pullbackTicker.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
-			l.monitorPrice()
-		case <-stopLossTicker.C:
-			l.checkStopLoss()
+		case <-priceTicker.C:
+			l.monitorPrice() //价格监视
+		case <-winLossTicker.C:
+			l.checkStopWinOrLoss() //止盈止损
 		case <-pullbackTicker.C:
-			l.checkPullback()
+			l.checkPullback() //价格回调
 		}
 	}
 	return nil
 }
 
 // 新增止损检查方法
-func (l *ContractLogic) checkStopLoss() {
+func (l *ContractLogic) checkStopWinOrLoss() {
 	if !l.position {
 		return
 	}
-
+	if l.posOrder == nil {
+		return
+	}
 	currentPrice, err := l.ticker.GetCurrentPrice(l.Symbol)
 	if err != nil {
 		return
 	}
 
-	// 计算当前亏损比例
-	lossPct := l.entryPrice.Sub(currentPrice).Div(l.entryPrice).Mul(l.Leverage)
-
-	if lossPct.GreaterThan(l.StopLossPct) {
-		log.Warnf("[%v] 触发止损 开仓价: %v 当前价: %v 亏损比例: %v％",
-			l.Symbol,
-			utils.FormatDecimal(l.entryPrice, 9),
-			utils.FormatDecimal(currentPrice, 9),
-			l.formatRisePercent(lossPct),
-		)
-		_ = l.closePosition(currentPrice)
+	// 当前盈亏比
+	pct := l.posOrder.UplRatio
+	if pct.LessThan(0) { //亏损
+		if pct.Abs().GreaterThan(l.StopLossPct) {
+			log.Warnf("[%v] 触发止损 开仓价: %v 当前价: %v 亏损比例: %v％  亏损金额：%vUSD",
+				l.Symbol,
+				utils.FormatDecimal(l.entryPrice, 9),
+				utils.FormatDecimal(currentPrice, 9),
+				l.formatRisePercent(pct),
+				l.posOrder.Upl.Round(2),
+			)
+			_ = l.closePosition(currentPrice)
+		}
+	} else { //盈利
+		if pct.GreaterThan(l.StopWinPct) {
+			log.Warnf("[%v] 触发止赢 开仓价: %v 当前价: %v 盈利比例: %v％ 盈利金额：%vUSD",
+				l.Symbol,
+				utils.FormatDecimal(l.entryPrice, 9),
+				utils.FormatDecimal(currentPrice, 9),
+				l.formatRisePercent(pct),
+				l.posOrder.Upl.Round(2),
+			)
+		}
 	}
 }
 

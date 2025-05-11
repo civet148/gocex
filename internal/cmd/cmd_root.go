@@ -40,11 +40,16 @@ const (
 	CmdFlag_SideType    = "side-type"
 	CmdFlag_TargetCcy   = "target-ccy"
 	CmdFlag_Ccy         = "ccy"
+	CmdFlag_Simulate    = "sim"
 )
 
 func loadConfig(ctx *cli.Context) (*config.Config, error) {
 	var c config.Config
-
+	var sim = ctx.Bool(CmdFlag_Simulate)
+	if sim {
+		c.Simulate = true
+		log.Warnf("Simulate mode [ON]")
+	}
 	//设置配置文件
 	viper.SetConfigFile(ctx.String(CmdFlag_Config))
 
@@ -66,7 +71,9 @@ func loadConfig(ctx *cli.Context) (*config.Config, error) {
 			return nil, err
 		}
 	}
-
+	if sim {
+		c.Simulate = true
+	}
 	log.Json(&c)
 	return &c, nil
 }
@@ -89,6 +96,11 @@ func AppStart(program, ver, buildTime, commit string) {
 				Usage:   "debug",
 				Aliases: []string{"d"},
 			},
+			&cli.BoolFlag{
+				Name:    CmdFlag_Simulate,
+				Usage:   "simulate mode",
+				Aliases: []string{"s"},
+			},
 		},
 		Commands: []*cli.Command{
 			cmdAcc,
@@ -96,7 +108,6 @@ func AppStart(program, ver, buildTime, commit string) {
 			cmdPub,
 		},
 		Action: func(ctx *cli.Context) error {
-
 			if ctx.Bool(CmdFlag_Debug) {
 				log.SetLevel("debug")
 			}
@@ -109,7 +120,6 @@ func AppStart(program, ver, buildTime, commit string) {
 			if c.Debug {
 				log.SetLevel("debug")
 			}
-
 			cex := logic.NewCexLogic(c)
 			return cex.Run()
 		},

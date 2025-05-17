@@ -289,9 +289,7 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 	if currentPrice.Float64() > l.highestPrice.Float64() {
 		l.highestPrice = currentPrice
 	}
-	//// 计算从基准价的涨幅
-	//riseBase := currentPrice.Sub(l.basePrice).Div(l.basePrice)
-	//
+
 	// 计算上次检查价格的涨幅
 	riseLast := currentPrice.Sub(l.lastPrice).Div(l.lastPrice)
 
@@ -304,8 +302,23 @@ func (l *ContractLogic) checkExitCondition(currentPrice sqlca.Decimal) {
 		log.Panic("Continuous not valid")
 		return
 	}
+	if riseLast.LessThan(0) {
+		log.Infof("[%v] 基础价: %v 市场价: %v 跌幅 [%v] 持续次数 [%v]",
+			l.Symbol,
+			utils.FormatDecimal(l.basePrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.colorPercent(riseLast),
+			l.pullCount)
+	} else {
+		log.Infof("[%v] 基础价: %v 市场价: %v 涨幅 [%v]",
+			l.Symbol,
+			utils.FormatDecimal(l.basePrice, 9),
+			utils.FormatDecimal(currentPrice, 9),
+			l.colorPercent(riseLast),
+		)
+	}
 	// 满足持续暴跌次数强制平仓
-	if count := l.Continuous - 1; count > 0 && l.pullCount >= count {
+	if count := l.Continuous; count > 0 && l.pullCount >= count {
 		log.Warnf("[%v] 基础价: %v 市场价: %v 暴跌持续次数 [%v] 强制平仓",
 			l.Symbol,
 			utils.FormatDecimal(l.basePrice, 9),
@@ -350,8 +363,8 @@ func (l *ContractLogic) openPosition(price sqlca.Decimal) error {
 
 func (l *ContractLogic) closePosition(price sqlca.Decimal) (err error) {
 	if l.Simulate {
-		profit := (price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage)
-		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f％ (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), profit*100)
+		profit := sqlca.NewDecimal((price.Float64() - l.entryPrice.Float64()) / l.entryPrice.Float64() * float64(l.Leverage))
+		log.Infof("[%v] 平仓信号 价格: %v 收益率: %.2f％ (模拟交易模式)", l.Symbol, utils.FormatDecimal(price, 9), l.colorPercent(profit))
 	} else {
 		var pos *types.OrderListDetail
 		pos, err = l.getActivePosition()

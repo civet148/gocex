@@ -25,10 +25,10 @@ RiseThreshold: 0.015
 # 止损百分比
 StopLossPct: 0.05
 # 止盈百分比
-StopWinPct: 0.2
+StopWinPct: 0.1
 # 价格回调比例（满足则平仓）
-PullBackRate: 0.015
+PullBackRate: 0.012
 # 交易金额比例（余额百分比）
-TradeAmountRate: 0.5
+TradeAmountRate: 0.6
 
 
